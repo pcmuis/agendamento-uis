@@ -1,3 +1,5 @@
+import { FaLaughBeam } from 'react-icons/fa';
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-green-50 p-4 sm:p-6">
@@ -43,6 +45,9 @@ export default function Home() {
               </div>
             </div>
           </a>
+
+          {/* Link Secreto */}
+          {/* Removido o link para a página da zoeira */}
         </div>
       </div>
     </main>

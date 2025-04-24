@@ -81,6 +81,24 @@ export default function AdministracaoPage() {
                                 </div>
                             </div>
                         </a>
+
+                        {/* Card Histórico de Uso dos Veículos */}
+                        <a 
+                            href="/historico" 
+                            className="bg-white p-6 rounded-lg shadow-md border border-green-200 hover:shadow-lg transition-shadow duration-200"
+                        >
+                            <div className="flex items-center space-x-4">
+                                <div className="bg-green-100 p-3 rounded-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16h8m-4-4v8m8-8a8 8 0 11-16 0 8 8 0 0116 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-medium text-green-700">Histórico de Veículos</h2>
+                                    <p className="text-sm text-gray-600">Visualize e gerencie o histórico de uso</p>
+                                </div>
+                            </div>
+                        </a>
                     </div>
                 </div>
             </main>

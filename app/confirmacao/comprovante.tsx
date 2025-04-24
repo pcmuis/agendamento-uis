@@ -11,6 +11,7 @@ type ComprovanteProps = {
     destino: string;
     observacoes?: string;
     veiculo: string;
+    placa?: string;
     saida: string;
     chegada: string;
     vagas: number;
@@ -21,7 +22,6 @@ type ComprovanteProps = {
 export default function Comprovante({ agendamento, onClose }: ComprovanteProps) {
   const [mostrarInstrucoes, setMostrarInstrucoes] = useState<boolean>(false);
 
-  // Fechar modal com tecla Esc
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -32,7 +32,6 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  // Instruções para retirada, zelo, condução e devolução
   const instrucoes = {
     retirada: [
       'Retire o veículo na garagem central (endereço: [inserir endereço]) no horário agendado.',
@@ -56,7 +55,6 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
     ],
   };
 
-  // Enviar comprovante para WhatsApp
   const handleEnviarWhatsApp = () => {
     const mensagem = `📋 *Comprovante de Agendamento de Veículo*\n\n` +
       `👤 *Motorista*: ${agendamento.motorista}\n` +
@@ -78,7 +76,6 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
     window.open(url, '_blank');
   };
 
-  // Copiar comprovante para a área de transferência
   const handleCopiar = () => {
     const texto = `Comprovante de Agendamento de Veículo\n\n` +
       `Motorista: ${agendamento.motorista}\n` +
@@ -105,35 +102,72 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300">
-      <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-transform duration-300 scale-100 hover:scale-105">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl sm:text-2xl font-semibold text-green-800">Comprovante de Agendamento</h2>
+    <div className="fixed inset-0 bg-green-50 flex items-center justify-center z-50 transition-opacity duration-300">
+      <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-11/12 max-w-lg max-h-[90vh] overflow-y-auto mx-4 transform transition-transform duration-300 scale-100 relative">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-green-800">Comprovante de Agendamento</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 transition-colors"
-            aria-label="Fechar"
+            aria-label="Fechar comprovante"
           >
-            <FaTimes size={20} />
+            <FaTimes size={18} />
           </button>
         </div>
-        <div className="space-y-3 text-sm sm:text-base text-gray-700">
-          <p><span className="font-medium text-green-700">Motorista:</span> {agendamento.motorista}</p>
-          <p><span className="font-medium text-green-700">Matrícula:</span> {agendamento.matricula}</p>
-          <p><span className="font-medium text-green-700">Telefone:</span> {agendamento.telefone}</p>
-          <p><span className="font-medium text-green-700">Destino:</span> {agendamento.destino}</p>
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md mb-6">
+          <p className="text-sm sm:text-base font-medium">
+            ⚠️ Atenção: Você deve enviar este comprovante para o WhatsApp para validar o agendamento.
+          </p>
+        </div>
+        <div className="space-y-2 text-sm sm:text-base text-gray-700">
+          <p className="flex flex-wrap">
+            <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Motorista:</span>
+            <span className="text-wrap">{agendamento.motorista}</span>
+          </p>
+          <p className="flex flex-wrap">
+            <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Matrícula:</span>
+            <span className="text-wrap">{agendamento.matricula}</span>
+          </p>
+          <p className="flex flex-wrap">
+            <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Telefone:</span>
+            <span className="text-wrap">{agendamento.telefone}</span>
+          </p>
+          <p className="flex flex-wrap">
+            <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Destino:</span>
+            <span className="text-wrap">{agendamento.destino}</span>
+          </p>
           {agendamento.observacoes && (
-            <p><span className="font-medium text-green-700">Observações:</span> {agendamento.observacoes}</p>
+            <p className="flex flex-wrap">
+              <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Observações:</span>
+              <span className="text-wrap">{agendamento.observacoes}</span>
+            </p>
           )}
-          <p><span className="font-medium text-green-700">Veículo:</span> {agendamento.veiculo}</p>
-          <p><span className="font-medium text-green-700">Saída:</span> {new Date(agendamento.saida).toLocaleString('pt-BR')}</p>
-          <p><span className="font-medium text-green-700">Chegada:</span> {new Date(agendamento.chegada).toLocaleString('pt-BR')}</p>
-          <p><span className="font-medium text-green-700">Vagas:</span> {agendamento.vagas}</p>
+          <p className="flex flex-wrap">
+            <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Veículo:</span>
+            <span className="text-wrap">{agendamento.veiculo}</span>
+          </p>
+          <p className="flex flex-wrap">
+            <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Placa:</span>
+            <span className="text-wrap">{agendamento.placa}</span>
+          </p>
+          <p className="flex flex-wrap">
+            <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Saída:</span>
+            <span className="text-wrap">{new Date(agendamento.saida).toLocaleString('pt-BR')}</span>
+          </p>
+          <p className="flex flex-wrap">
+            <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Chegada:</span>
+            <span className="text-wrap">{new Date(agendamento.chegada).toLocaleString('pt-BR')}</span>
+          </p>
+          <p className="flex flex-wrap">
+            <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Vagas:</span>
+            <span className="text-wrap">{agendamento.vagas}</span>
+          </p>
         </div>
         <div className="mt-6">
           <button
             onClick={() => setMostrarInstrucoes(!mostrarInstrucoes)}
-            className="flex items-center w-full bg-green-100 text-green-700 py-2 px-4 rounded-md hover:bg-green-200 transition-colors duration-200 text-sm sm:text-base"
+            className="flex items-center w-full bg-green-100 text-green-700 py-2 px-3 rounded-md hover:bg-green-200 transition-colors duration-200 text-sm sm:text-base"
+            aria-expanded={mostrarInstrucoes}
           >
             {mostrarInstrucoes ? (
               <FaChevronUp className="mr-2" />
@@ -142,63 +176,66 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
             )}
             {mostrarInstrucoes ? 'Ocultar Instruções' : 'Mostrar Instruções'}
           </button>
-          {mostrarInstrucoes && (
-            <div className="mt-4 space-y-4 text-sm sm:text-base text-gray-700">
-              <div>
-                <h3 className="font-medium text-green-700">1. Retirada</h3>
-                <ul className="list-disc pl-5 space-y-1">
-                  {instrucoes.retirada.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-medium text-green-700">2. Zelo</h3>
-                <ul className="list-disc pl-5 space-y-1">
-                  {instrucoes.zelo.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-medium text-green-700">3. Condução</h3>
-                <ul className="list-disc pl-5 space-y-1">
-                  {instrucoes.conducao.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-medium text-green-700">4. Devolução</h3>
-                <ul className="list-disc pl-5 space-y-1">
-                  {instrucoes.devolucao.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="mt-6 flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
-          <button
-            onClick={handleCopiar}
-            className="flex items-center justify-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors duration-200 text-sm sm:text-base"
+          <div
+            className={`mt-3 space-y-3 text-sm sm:text-base text-gray-700 transition-all duration-300 ease-in-out ${
+              mostrarInstrucoes ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
+            }`}
           >
-            <FaCopy className="mr-2" />
-            Copiar
-          </button>
+            <div>
+              <h3 className="font-medium text-green-700">1. Retirada</h3>
+              <ul className="list-disc pl-5 space-y-1 text-wrap">
+                {instrucoes.retirada.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-medium text-green-700">2. Zelo</h3>
+              <ul className="list-disc pl-5 space-y-1 text-wrap">
+                {instrucoes.zelo.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-medium text-green-700">3. Condução</h3>
+              <ul className="list-disc pl-5 space-y-1 text-wrap">
+                {instrucoes.conducao.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-medium text-green-700">4. Devolução</h3>
+              <ul className="list-disc pl-5 space-y-1 text-wrap">
+                {instrucoes.devolucao.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div className="fixed top-1/3 right-4 flex flex-col gap-3 z-50">
           <button
             onClick={handleEnviarWhatsApp}
-            className="flex items-center justify-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base"
+            className="flex items-center justify-center bg-green-500 text-white p-3 rounded-full shadow-md hover:bg-green-600 transition-colors duration-200"
+            aria-label="Compartilhar no WhatsApp"
           >
-            <FaWhatsapp className="mr-2" />
-            Enviar para WhatsApp
+            <FaWhatsapp size={20} />
+          </button>
+          <button
+            onClick={handleCopiar}
+            className="flex items-center justify-center bg-gray-500 text-white p-3 rounded-full shadow-md hover:bg-gray-600 transition-colors duration-200"
+            aria-label="Copiar Comprovante"
+          >
+            <FaCopy size={20} />
           </button>
           <button
             onClick={onClose}
-            className="flex items-center justify-center bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors duration-200 text-sm sm:text-base"
+            className="flex items-center justify-center bg-red-500 text-white p-3 rounded-full shadow-md hover:bg-red-600 transition-colors duration-200"
+            aria-label="Fechar"
           >
-            Fechar
+            <FaTimes size={20} />
           </button>
         </div>
       </div>

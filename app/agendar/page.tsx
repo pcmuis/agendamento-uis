@@ -197,6 +197,7 @@ export default function AgendarPage() {
         destino: dados.destino,
         observacoes: dados.observacoes,
         veiculo: veiculos.find((v) => v.id === dados.veiculoId)?.modelo || 'Desconhecido',
+        placa: veiculos.find((v) => v.id === dados.veiculoId)?.placa || 'Não informada',
         saida: dados.saida,
         chegada: dados.chegada,
         vagas: dados.vagas,

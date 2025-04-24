@@ -33,7 +33,7 @@ export default function GerenciarAgendamentosPage() {
         const carregarDados = async () => {
             const agendamentosLista = await listarAgendamentos();
             setAgendamentos(agendamentosLista);
-            const veiculosLista = await listarVeiculos();
+            const veiculosLista = await listarVeiculosComStatus(new Date().toISOString());
             setVeiculos(veiculosLista);
         };
         carregarDados();
@@ -125,30 +125,6 @@ export default function GerenciarAgendamentosPage() {
         setErro('');
     };
 
-    const handleExcluir = async (id: string) => {
-        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-            await excluirAgendamento(id);
-            const agendamentosLista = await listarAgendamentos();
-            setAgendamentos(agendamentosLista);
-            alert('Agendamento excluído com sucesso!');
-        }
-    };
-
-    const handleEditar = (agendamento: any) => {
-        setDadosForm({
-            id: agendamento.id,
-            saida: new Date(agendamento.saida).toISOString().slice(0, 16),
-            chegada: new Date(agendamento.chegada).toISOString().slice(0, 16),
-            veiculoId: agendamento.veiculoId,
-            motorista: agendamento.motorista,
-            matricula: agendamento.matricula,
-            telefone: agendamento.telefone,
-            destino: agendamento.destino,
-            vagas: agendamento.vagas,
-        });
-        setFormAberto('editar');
-    };
-
     const handleOrdenar = (coluna: string) => {
         const novaDirecao = ordenacao.coluna === coluna && ordenacao.direcao === 'asc' ? 'desc' : 'asc';
         setOrdenacao({ coluna, direcao: novaDirecao });
@@ -160,6 +136,12 @@ export default function GerenciarAgendamentosPage() {
                 return novaDirecao === 'asc'
                     ? new Date(valorA).getTime() - new Date(valorB).getTime()
                     : new Date(valorB).getTime() - new Date(valorA).getTime();
+            } else if (coluna === 'veiculoId') {
+                const nomeA = getVeiculoNome(valorA);
+                const nomeB = getVeiculoNome(valorB);
+                return novaDirecao === 'asc'
+                    ? nomeA.localeCompare(nomeB)
+                    : nomeB.localeCompare(nomeA);
             }
             return novaDirecao === 'asc'
                 ? valorA.localeCompare(valorB)
@@ -169,27 +151,51 @@ export default function GerenciarAgendamentosPage() {
         setAgendamentos(agendamentosOrdenados);
     };
 
+    const handleEditar = (agendamento: any) => {
+        setFormAberto('editar');
+        setDadosForm({
+            id: agendamento.id,
+            saida: agendamento.saida ? new Date(agendamento.saida).toISOString().slice(0, 16) : '',
+            chegada: agendamento.chegada ? new Date(agendamento.chegada).toISOString().slice(0, 16) : '',
+            veiculoId: agendamento.veiculoId || '',
+            motorista: agendamento.motorista || '',
+            matricula: agendamento.matricula || '',
+            telefone: agendamento.telefone || '',
+            destino: agendamento.destino || '',
+            vagas: agendamento.vagas || 1,
+        });
+        setErro('');
+    };
+
+    const handleExcluir = async (id: string) => {
+        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+            await excluirAgendamento(id);
+            setAgendamentos(agendamentos.filter((ag) => ag.id !== id));
+        }
+    };
+
     const getVeiculoNome = (veiculoId: string) => {
         const veiculo = veiculos.find((v) => v.id === veiculoId);
         return veiculo ? `${veiculo.modelo} - ${veiculo.placa}` : 'Veículo não encontrado';
     };
 
-    const exportarParaExcel = () => {
-        const dadosFormatados = agendamentos.map(ag => ({
-            'Data/Hora Saída': new Date(ag.saida).toLocaleString('pt-BR'),
-            'Data/Hora Chegada': new Date(ag.chegada).toLocaleString('pt-BR'),
-            'Veículo': getVeiculoNome(ag.veiculoId),
-            'Motorista': ag.motorista,
-            'Matrícula': ag.matricula,
-            'Telefone': ag.telefone,
-            'Destino': ag.destino,
-            'Vagas': ag.vagas
-        }));
+    const isVeiculoOcupado = (veiculoId: string) => {
+        const veiculo = veiculos.find((v) => v.id === veiculoId);
+        return veiculo?.status?.disponivel === false;
+    };
 
-        const worksheet = XLSX.utils.json_to_sheet(dadosFormatados);
+    const exportarParaExcel = () => {
+        const worksheet = XLSX.utils.json_to_sheet(
+            agendamentos.map((ag) => ({
+                ...ag,
+                veiculo: getVeiculoNome(ag.veiculoId),
+                saida: new Date(ag.saida).toLocaleString('pt-BR'),
+                chegada: new Date(ag.chegada).toLocaleString('pt-BR'),
+            }))
+        );
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
-        XLSX.writeFile(workbook, `Agendamentos_${new Date().toISOString().slice(0,10)}.xlsx`);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Agendamentos');
+        XLSX.writeFile(workbook, 'agendamentos.xlsx');
     };
 
     return (
@@ -200,18 +206,33 @@ export default function GerenciarAgendamentosPage() {
                         <h1 className="text-2xl sm:text-3xl font-semibold text-green-800 mb-4 sm:mb-0">
                             Gerenciamento de Agendamentos
                         </h1>
-                        
                         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <button
+                                onClick={() => window.location.href = '/historico'}
+                                className="flex items-center justify-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm"
+                            >
+                                Histórico de Veículos
+                            </button>
                             <button
                                 onClick={exportarParaExcel}
                                 className="flex items-center justify-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-200 text-sm"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5 mr-2"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                    />
                                 </svg>
                                 Exportar para Excel
                             </button>
-                            
                             <button
                                 onClick={() => {
                                     setFormAberto('novo');
@@ -230,8 +251,19 @@ export default function GerenciarAgendamentosPage() {
                                 }}
                                 className="flex items-center justify-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-200 text-sm"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5 mr-2"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 4v16m8-8H4"
+                                    />
                                 </svg>
                                 Novo Agendamento
                             </button>
@@ -425,7 +457,12 @@ export default function GerenciarAgendamentosPage() {
                             <tbody>
                                 {agendamentos.length > 0 ? (
                                     agendamentos.map((ag) => (
-                                        <tr key={ag.id} className="border-t border-green-200">
+                                        <tr
+                                            key={ag.id}
+                                            className={`border-t border-green-200 ${
+                                                isVeiculoOcupado(ag.veiculoId) ? 'bg-gray-100' : ''
+                                            }`}
+                                        >
                                             <td className="p-3 text-sm text-gray-900">
                                                 {new Date(ag.saida).toLocaleString('pt-BR')}
                                             </td>
