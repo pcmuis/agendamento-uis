@@ -95,24 +95,9 @@ export async function removerVeiculo(id: string): Promise<void> {
   }
 }
 
-export async function atualizarVeiculo(
-  id: string,
-  dados: Partial<Omit<Veiculo, 'id'>>
-): Promise<void> {
-  try {
-    if (!id) {
-      throw new Error('ID do veículo é obrigatório');
-    }
-
-    const ref = doc(db, 'veiculos', id);
-    await updateDoc(ref, {
-      ...dados,
-      placa: dados.placa?.toUpperCase(),
-    });
-  } catch (error) {
-    console.error(`Erro ao atualizar veículo ${id}:`, error);
-    throw error;
-  }
+export async function atualizarVeiculo(id: string, dados: Partial<Veiculo>) {
+    const docRef = doc(db, 'veiculos', id);
+    await updateDoc(docRef, dados);
 }
 
 export async function listarVeiculosComStatus(dataSaida: string): Promise<(Veiculo & {

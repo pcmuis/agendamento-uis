@@ -7,6 +7,7 @@ import { criarAgendamento, listarAgendamentos, atualizarAgendamento, excluirAgen
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/app/lib/firebase';
 import * as XLSX from 'xlsx';
+import { atualizarVeiculo } from '@/app/lib/veiculos';
 
 export default function GerenciarAgendamentosPage() {
     const [agendamentos, setAgendamentos] = useState<any[]>([]);
@@ -21,7 +22,9 @@ export default function GerenciarAgendamentosPage() {
         matricula: '',
         telefone: '',
         destino: '',
+        observacoes: '',
         vagas: 1,
+        concluido: false,
     });
     const [erro, setErro] = useState<string>('');
     const [ordenacao, setOrdenacao] = useState<{ coluna: string; direcao: 'asc' | 'desc' }>({
@@ -30,14 +33,15 @@ export default function GerenciarAgendamentosPage() {
     });
 
     useEffect(() => {
-        const carregarDados = async () => {
-            const agendamentosLista = await listarAgendamentos();
-            setAgendamentos(agendamentosLista);
-            const veiculosLista = await listarVeiculosComStatus(new Date().toISOString());
-            setVeiculos(veiculosLista);
-        };
         carregarDados();
     }, []);
+
+    const carregarDados = async () => {
+        const agendamentosLista = await listarAgendamentos();
+        setAgendamentos(agendamentosLista);
+        const veiculosLista = await listarVeiculosComStatus(new Date().toISOString());
+        setVeiculos(veiculosLista);
+    };
 
     const validarAgendamento = async (dados: typeof dadosForm, isEdicao: boolean = false) => {
         const camposObrigatorios = [
@@ -56,12 +60,12 @@ export default function GerenciarAgendamentosPage() {
             .map((campo) => campo.nome);
 
         if (camposFaltando.length > 0) {
-            return `Preencha os campos obrigatórios: ${camposFaltando.join(', ')}`;
+            return `Por favor, preencha os campos obrigatórios: ${camposFaltando.join(', ')}.`;
         }
 
         const telefoneLimpo = dados.telefone.replace(/\D/g, '');
         if (telefoneLimpo.length < 10 || telefoneLimpo.length > 11) {
-            return 'O número de telefone deve ter 10 ou 11 dígitos';
+            return 'O número de telefone deve ter 10 ou 11 dígitos.';
         }
 
         const colAgendamentos = collection(db, 'agendamentos');
@@ -87,7 +91,7 @@ export default function GerenciarAgendamentosPage() {
             const horaMinimaEntrega = new Date(
                 new Date(agendamentoConflitante.saida).getTime() - 60 * 60 * 1000
             ).toLocaleString('pt-BR');
-            return `Este veículo já está agendado com saída em ${saidaConflito}. A entrega deve ser pelo menos 1 hora antes, até ${horaMinimaEntrega}.`;
+            return `Conflito: Este veículo está agendado com saída em ${saidaConflito}. A entrega deve ser até ${horaMinimaEntrega}.`;
         }
 
         return '';
@@ -108,8 +112,7 @@ export default function GerenciarAgendamentosPage() {
             alert('Agendamento atualizado com sucesso!');
         }
 
-        const agendamentosLista = await listarAgendamentos();
-        setAgendamentos(agendamentosLista);
+        await carregarDados();
         setFormAberto(null);
         setDadosForm({
             id: '',
@@ -120,35 +123,30 @@ export default function GerenciarAgendamentosPage() {
             matricula: '',
             telefone: '',
             destino: '',
+            observacoes: '',
             vagas: 1,
+            concluido: false,
         });
         setErro('');
+    };
+
+    const handleConcluir = async (id: string, veiculoId: string) => {
+        if (confirm('Deseja marcar este agendamento como concluído?')) {
+            const agora = new Date().toISOString();
+            try {
+                await atualizarAgendamento(id, { concluido: true });
+                await atualizarVeiculo(veiculoId, { disponivel: true, retorno: agora });
+                await carregarDados();
+            } catch (error) {
+                console.error('Erro ao concluir agendamento:', error);
+                alert('Erro ao concluir agendamento. Tente novamente.');
+            }
+        }
     };
 
     const handleOrdenar = (coluna: string) => {
         const novaDirecao = ordenacao.coluna === coluna && ordenacao.direcao === 'asc' ? 'desc' : 'asc';
         setOrdenacao({ coluna, direcao: novaDirecao });
-
-        const agendamentosOrdenados = [...agendamentos].sort((a, b) => {
-            const valorA = a[coluna] || '';
-            const valorB = b[coluna] || '';
-            if (coluna === 'saida' || coluna === 'chegada') {
-                return novaDirecao === 'asc'
-                    ? new Date(valorA).getTime() - new Date(valorB).getTime()
-                    : new Date(valorB).getTime() - new Date(valorA).getTime();
-            } else if (coluna === 'veiculoId') {
-                const nomeA = getVeiculoNome(valorA);
-                const nomeB = getVeiculoNome(valorB);
-                return novaDirecao === 'asc'
-                    ? nomeA.localeCompare(nomeB)
-                    : nomeB.localeCompare(nomeA);
-            }
-            return novaDirecao === 'asc'
-                ? valorA.localeCompare(valorB)
-                : valorB.localeCompare(valorA);
-        });
-
-        setAgendamentos(agendamentosOrdenados);
     };
 
     const handleEditar = (agendamento: any) => {
@@ -162,7 +160,9 @@ export default function GerenciarAgendamentosPage() {
             matricula: agendamento.matricula || '',
             telefone: agendamento.telefone || '',
             destino: agendamento.destino || '',
+            observacoes: agendamento.observacoes || '',
             vagas: agendamento.vagas || 1,
+            concluido: agendamento.concluido || false,
         });
         setErro('');
     };
@@ -184,18 +184,122 @@ export default function GerenciarAgendamentosPage() {
         return veiculo?.status?.disponivel === false;
     };
 
+    const isAgendamentoPassadoOuConcluido = (agendamento: any) => {
+        return agendamento.concluido || new Date(agendamento.chegada) < new Date();
+    };
+
+    const getStatusAgendamento = (agendamento: any) => {
+        if (agendamento.concluido) return 'Concluído';
+        if (new Date(agendamento.chegada) < new Date()) return 'Atrasado';
+        return 'Ativo';
+    };
+
+    // Separate and sort agendamentos
+    const agendamentosAtivos = agendamentos
+        .filter((ag) => !isAgendamentoPassadoOuConcluido(ag))
+        .sort((a, b) => {
+            const valorA = a[ordenacao.coluna] || '';
+            const valorB = b[ordenacao.coluna] || '';
+            if (ordenacao.coluna === 'saida' || ordenacao.coluna === 'chegada') {
+                return ordenacao.direcao === 'asc'
+                    ? new Date(valorA).getTime() - new Date(valorB).getTime()
+                    : new Date(valorB).getTime() - new Date(valorA).getTime();
+            } else if (ordenacao.coluna === 'veiculoId') {
+                const nomeA = getVeiculoNome(valorA);
+                const nomeB = getVeiculoNome(valorB);
+                return ordenacao.direcao === 'asc'
+                    ? nomeA.localeCompare(nomeB)
+                    : nomeB.localeCompare(nomeA);
+            }
+            return ordenacao.direcao === 'asc'
+                ? valorA.localeCompare(valorB)
+                : valorB.localeCompare(valorA);
+        });
+
+    const agendamentosPassadosOuConcluidos = agendamentos
+        .filter((ag) => isAgendamentoPassadoOuConcluido(ag))
+        .sort((a, b) => new Date(b.chegada).getTime() - new Date(a.chegada).getTime());
+
     const exportarParaExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(
-            agendamentos.map((ag) => ({
-                ...ag,
-                veiculo: getVeiculoNome(ag.veiculoId),
-                saida: new Date(ag.saida).toLocaleString('pt-BR'),
-                chegada: new Date(ag.chegada).toLocaleString('pt-BR'),
-            }))
-        );
+        const colunas = [
+            { header: 'Data e Hora de Saída', key: 'saida', width: 20 },
+            { header: 'Data e Hora de Chegada', key: 'chegada', width: 20 },
+            { header: 'Veículo', key: 'veiculo', width: 25 },
+            { header: 'Motorista', key: 'motorista', width: 20 },
+            { header: 'Matrícula', key: 'matricula', width: 15 },
+            { header: 'Telefone', key: 'telefone', width: 15 },
+            { header: 'Destino', key: 'destino', width: 30 },
+            { header: 'Observações', key: 'observacoes', width: 40 },
+            { header: 'Vagas', key: 'vagas', width: 10 },
+            { header: 'Status', key: 'status', width: 15 },
+        ];
+
+        const dados = agendamentos.map((ag) => ({
+            saida: new Date(ag.saida).toLocaleString('pt-BR'),
+            chegada: new Date(ag.chegada).toLocaleString('pt-BR'),
+            veiculo: getVeiculoNome(ag.veiculoId),
+            motorista: ag.motorista || '',
+            matricula: ag.matricula || '',
+            telefone: ag.telefone || '',
+            destino: ag.destino || '',
+            observacoes: ag.observacoes || '',
+            vagas: ag.vagas || 1,
+            status: getStatusAgendamento(ag),
+        }));
+
+        const worksheet = XLSX.utils.aoa_to_sheet([
+            colunas.map(col => col.header),
+            ...dados.map(row => colunas.map(col => row[col.key as keyof typeof row])),
+        ]);
+
+        const headerStyle = {
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: '4CAF50' } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: {
+                top: { style: 'thin', color: { rgb: '000000' } },
+                bottom: { style: 'thin', color: { rgb: '000000' } },
+                left: { style: 'thin', color: { rgb: '000000' } },
+                right: { style: 'thin', color: { rgb: '000000' } },
+            },
+        };
+
+        colunas.forEach((_, index) => {
+            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: index });
+            if (!worksheet[cellAddress]) worksheet[cellAddress] = { v: colunas[index].header };
+            worksheet[cellAddress].s = headerStyle;
+        });
+
+        const dataStyle = {
+            border: {
+                top: { style: 'thin', color: { rgb: '000000' } },
+                bottom: { style: 'thin', color: { rgb: '000000' } },
+                left: { style: 'thin', color: { rgb: '000000' } },
+                right: { style: 'thin', color: { rgb: '000000' } },
+            },
+            alignment: { horizontal: 'left', vertical: 'center' },
+        };
+
+        for (let r = 1; r <= dados.length; r++) {
+            colunas.forEach((_, c) => {
+                const cellAddress = XLSX.utils.encode_cell({ r, c });
+                if (worksheet[cellAddress]) {
+                    worksheet[cellAddress].s = dataStyle;
+                }
+            });
+        }
+
+        worksheet['!cols'] = colunas.map(col => ({ wch: col.width }));
+        worksheet['!rows'] = [{ hpt: 25 }];
+        for (let i = 1; i <= dados.length; i++) {
+            worksheet['!rows'][i] = { hpt: 20 };
+        }
+
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Agendamentos');
-        XLSX.writeFile(workbook, 'agendamentos.xlsx');
+
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        XLSX.writeFile(workbook, `agendamentos-${timestamp}.xlsx`);
     };
 
     return (
@@ -234,6 +338,26 @@ export default function GerenciarAgendamentosPage() {
                                 Exportar para Excel
                             </button>
                             <button
+                                onClick={carregarDados}
+                                className="flex items-center justify-center bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors duration-200 text-sm"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5 mr-2"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                    />
+                                </svg>
+                                Atualizar
+                            </button>
+                            <button
                                 onClick={() => {
                                     setFormAberto('novo');
                                     setDadosForm({
@@ -245,7 +369,9 @@ export default function GerenciarAgendamentosPage() {
                                         matricula: '',
                                         telefone: '',
                                         destino: '',
+                                        observacoes: '',
                                         vagas: 1,
+                                        concluido: false,
                                     });
                                     setErro('');
                                 }}
@@ -276,8 +402,14 @@ export default function GerenciarAgendamentosPage() {
                                 {formAberto === 'novo' ? 'Novo Agendamento' : 'Editar Agendamento'}
                             </h2>
                             {erro && (
-                                <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
+                                <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm flex justify-between items-center">
                                     {erro}
+                                    <button
+                                        onClick={() => setErro('')}
+                                        className="text-red-700 hover:text-red-900"
+                                    >
+                                        ✕
+                                    </button>
                                 </div>
                             )}
                             <div className="space-y-4">
@@ -391,6 +523,20 @@ export default function GerenciarAgendamentosPage() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-green-700 mb-1">
+                                        Observações
+                                    </label>
+                                    <textarea
+                                        value={dadosForm.observacoes}
+                                        onChange={(e) => setDadosForm({ ...dadosForm, observacoes: e.target.value })}
+                                        className={`w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm ${
+                                            dadosForm.observacoes ? 'text-gray-900' : 'text-gray-500'
+                                        }`}
+                                        placeholder="Observações (opcional)"
+                                        rows={4}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-green-700 mb-1">
                                         Vagas Necessárias
                                     </label>
                                     <input
@@ -430,6 +576,7 @@ export default function GerenciarAgendamentosPage() {
                             <thead>
                                 <tr className="bg-green-100">
                                     {[
+                                        { nome: 'Status', coluna: '' },
                                         { nome: 'Saída', coluna: 'saida' },
                                         { nome: 'Chegada', coluna: 'chegada' },
                                         { nome: 'Veículo', coluna: 'veiculoId' },
@@ -437,14 +584,15 @@ export default function GerenciarAgendamentosPage() {
                                         { nome: 'Matrícula', coluna: 'matricula' },
                                         { nome: 'Telefone', coluna: 'telefone' },
                                         { nome: 'Destino', coluna: 'destino' },
+                                        { nome: 'Observações', coluna: 'observacoes' },
                                         { nome: 'Vagas', coluna: 'vagas' },
                                         { nome: 'Ações', coluna: '' },
                                     ].map((col) => (
                                         <th
                                             key={col.coluna || col.nome}
                                             onClick={() => col.coluna && handleOrdenar(col.coluna)}
-                                            className={`p-3 text-left text-sm font-medium text-green-700 cursor-pointer ${
-                                                col.coluna ? 'hover:bg-green-200' : ''
+                                            className={`p-3 text-left text-sm font-medium text-green-700 ${
+                                                col.coluna ? 'cursor-pointer hover:bg-green-200' : ''
                                             }`}
                                         >
                                             {col.nome}
@@ -455,50 +603,263 @@ export default function GerenciarAgendamentosPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {agendamentos.length > 0 ? (
-                                    agendamentos.map((ag) => (
-                                        <tr
-                                            key={ag.id}
-                                            className={`border-t border-green-200 ${
-                                                isVeiculoOcupado(ag.veiculoId) ? 'bg-gray-100' : ''
-                                            }`}
-                                        >
-                                            <td className="p-3 text-sm text-gray-900">
-                                                {new Date(ag.saida).toLocaleString('pt-BR')}
-                                            </td>
-                                            <td className="p-3 text-sm text-gray-900">
-                                                {new Date(ag.chegada).toLocaleString('pt-BR')}
-                                            </td>
-                                            <td className="p-3 text-sm text-gray-900">
-                                                {getVeiculoNome(ag.veiculoId)}
-                                            </td>
-                                            <td className="p-3 text-sm text-gray-900">{ag.motorista}</td>
-                                            <td className="p-3 text-sm text-gray-900">{ag.matricula}</td>
-                                            <td className="p-3 text-sm text-gray-900">{ag.telefone}</td>
-                                            <td className="p-3 text-sm text-gray-900">{ag.destino}</td>
-                                            <td className="p-3 text-sm text-gray-900">{ag.vagas}</td>
-                                            <td className="p-3 text-sm">
-                                                <button
-                                                    onClick={() => handleEditar(ag)}
-                                                    className="text-green-600 hover:text-green-800 mr-2"
-                                                >
-                                                    Editar
-                                                </button>
-                                                <button
-                                                    onClick={() => handleExcluir(ag.id)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                >
-                                                    Excluir
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
+                                {agendamentos.length === 0 ? (
                                     <tr>
-                                        <td colSpan={9} className="p-3 text-sm text-gray-500 text-center">
+                                        <td colSpan={11} className="p-3 text-sm text-gray-500 text-center">
                                             Nenhum agendamento encontrado.
                                         </td>
                                     </tr>
+                                ) : (
+                                    <>
+                                        {agendamentosAtivos.length > 0 && (
+                                            <tr>
+                                                <td
+                                                    colSpan={11}
+                                                    className="p-3 text-sm font-medium text-green-800 bg-green-50"
+                                                >
+                                                    Agendamentos Ativos
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {agendamentosAtivos.map((ag) => (
+                                            <tr
+                                                key={ag.id}
+                                                className={`border-t border-green-200 hover:bg-green-50 transition-colors ${
+                                                    isVeiculoOcupado(ag.veiculoId) ? 'bg-gray-100' : ''
+                                                }`}
+                                            >
+                                                <td className="p-3 text-sm">
+                                                    <span
+                                                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                                            getStatusAgendamento(ag) === 'Ativo'
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : getStatusAgendamento(ag) === 'Concluído'
+                                                                ? 'bg-blue-100 text-blue-800'
+                                                                : 'bg-red-100 text-red-800'
+                                                        }`}
+                                                    >
+                                                        {getStatusAgendamento(ag)}
+                                                    </span>
+                                                </td>
+                                                <td className="p-3 text-sm text-gray-900">
+                                                    {new Date(ag.saida).toLocaleString('pt-BR')}
+                                                </td>
+                                                <td className="p-3 text-sm text-gray-900">
+                                                    {new Date(ag.chegada).toLocaleString('pt-BR')}
+                                                </td>
+                                                <td className="p-3 text-sm text-gray-900">
+                                                    {getVeiculoNome(ag.veiculoId)}
+                                                </td>
+                                                <td className="p-3 text-sm text-gray-900">{ag.motorista}</td>
+                                                <td className="p-3 text-sm text-gray-900">{ag.matricula}</td>
+                                                <td className="p-3 text-sm text-gray-900">{ag.telefone}</td>
+                                                <td className="p-3 text-sm text-gray-900">{ag.destino}</td>
+                                                <td className="p-3 text-sm text-gray-900">
+                                                    {ag.observacoes || '-'}
+                                                </td>
+                                                <td className="p-3 text-sm text-gray-900">{ag.vagas}</td>
+                                                <td className="p-3 text-sm flex space-x-2">
+                                                    <button
+                                                        onClick={() => handleEditar(ag)}
+                                                        className="text-green-600 hover:text-green-800 relative group"
+                                                        title="Editar agendamento"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-5 w-5"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                            />
+                                                        </svg>
+                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
+                                                            Editar
+                                                        </span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleExcluir(ag.id)}
+                                                        className="text-red-600 hover:text-red-800 relative group"
+                                                        title="Excluir agendamento"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-5 w-5"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2v1h8V5a2 2 0 00-2-2m-2 4h4"
+                                                            />
+                                                        </svg>
+                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
+                                                            Excluir
+                                                        </span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleConcluir(ag.id, ag.veiculoId)}
+                                                        disabled={ag.concluido}
+                                                        className={`relative group ${
+                                                            ag.concluido
+                                                                ? 'text-gray-400 cursor-not-allowed'
+                                                                : 'text-blue-600 hover:text-blue-800'
+                                                        }`}
+                                                        title={ag.concluido ? 'Já concluído' : 'Concluir agendamento'}
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-5 w-5"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M5 13l4 4L19 7"
+                                                            />
+                                                        </svg>
+                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
+                                                            {ag.concluido ? 'Concluído' : 'Concluir'}
+                                                        </span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {agendamentosPassadosOuConcluidos.length > 0 && (
+                                            <tr>
+                                                <td
+                                                    colSpan={11}
+                                                    className="p-3 text-sm font-medium text-green-800 bg-yellow-50"
+                                                >
+                                                    Agendamentos Passados/Concluídos
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {agendamentosPassadosOuConcluidos.map((ag) => (
+                                            <tr
+                                                key={ag.id}
+                                                className={`border-t border-green-200 bg-yellow-50 hover:bg-yellow-100 transition-colors`}
+                                            >
+                                                <td className="p-3 text-sm">
+                                                    <span
+                                                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                                            getStatusAgendamento(ag) === 'Ativo'
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : getStatusAgendamento(ag) === 'Concluído'
+                                                                ? 'bg-blue-100 text-blue-800'
+                                                                : 'bg-red-100 text-red-800'
+                                                        }`}
+                                                    >
+                                                        {getStatusAgendamento(ag)}
+                                                    </span>
+                                                </td>
+                                                <td className="p-3 text-sm text-gray-900">
+                                                    {new Date(ag.saida).toLocaleString('pt-BR')}
+                                                </td>
+                                                <td className="p-3 text-sm text-gray-900">
+                                                    {new Date(ag.chegada).toLocaleString('pt-BR')}
+                                                </td>
+                                                <td className="p-3 text-sm text-gray-900">
+                                                    {getVeiculoNome(ag.veiculoId)}
+                                                </td>
+                                                <td className="p-3 text-sm text-gray-900">{ag.motorista}</td>
+                                                <td className="p-3 text-sm text-gray-900">{ag.matricula}</td>
+                                                <td className="p-3 text-sm text-gray-900">{ag.telefone}</td>
+                                                <td className="p-3 text-sm text-gray-900">{ag.destino}</td>
+                                                <td className="p-3 text-sm text-gray-900">
+                                                    {ag.observacoes || '-'}
+                                                </td>
+                                                <td className="p-3 text-sm text-gray-900">{ag.vagas}</td>
+                                                <td className="p-3 text-sm flex space-x-2">
+                                                    <button
+                                                        onClick={() => handleEditar(ag)}
+                                                        className="text-green-600 hover:text-green-800 relative group"
+                                                        title="Editar agendamento"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-5 w-5"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                            />
+                                                        </svg>
+                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
+                                                            Editar
+                                                        </span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleExcluir(ag.id)}
+                                                        className="text-red-600 hover:text-red-800 relative group"
+                                                        title="Excluir agendamento"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-5 w-5"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2v1h8V5a2 2 0 00-2-2m-2 4h4"
+                                                            />
+                                                        </svg>
+                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
+                                                            Excluir
+                                                        </span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleConcluir(ag.id, ag.veiculoId)}
+                                                        disabled={ag.concluido}
+                                                        className={`relative group ${
+                                                            ag.concluido
+                                                                ? 'text-gray-400 cursor-not-allowed'
+                                                                : 'text-blue-600 hover:text-blue-800'
+                                                        }`}
+                                                        title={ag.concluido ? 'Já concluído' : 'Concluir agendamento'}
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-5 w-5"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M5 13l4 4L19 7"
+                                                            />
+                                                        </svg>
+                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
+                                                            {ag.concluido ? 'Concluído' : 'Concluir'}
+                                                        </span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </>
                                 )}
                             </tbody>
                         </table>

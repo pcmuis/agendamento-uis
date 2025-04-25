@@ -43,23 +43,25 @@ export default function AgendarPage() {
 
   // Carregar veículos com base na data de saída
   useEffect(() => {
-    if (dados.saida) {
-      const carregar = async () => {
+    const carregarVeiculos = async () => {
+        if (!dados.saida) {
+            setVeiculos([]);
+            setDados((prev) => ({ ...prev, veiculoId: '' }));
+            return;
+        }
+
         setCarregando(true);
         try {
-          const lista = await listarVeiculosComStatus(dados.saida);
-          setVeiculos(lista);
+            const lista = await listarVeiculosComStatus(dados.saida);
+            setVeiculos(lista.filter((v) => v.status.disponivel)); // Filtra apenas veículos disponíveis
         } catch (error) {
-          setErro('Erro ao carregar veículos. Tente novamente.');
-          console.error('Erro ao carregar veículos:', error);
+            setErro('Erro ao carregar veículos. Tente novamente.');
+            console.error('Erro ao carregar veículos:', error);
         } finally {
-          setCarregando(false);
+            setCarregando(false);
         }
-      };
-      carregar();
-    } else {
-      setVeiculos([]);
-    }
+    };
+    carregarVeiculos();
   }, [dados.saida]);
 
   // Calcular datas máximas de devolução
@@ -69,7 +71,7 @@ export default function AgendarPage() {
       const agendamentosSnap = await getDocs(colAgendamentos);
       const agendamentos = agendamentosSnap.docs.map((doc) => ({
         id: doc.id,
-        ...(doc.data() as { veiculoId: string; saida: string; chegada: string }),
+        ...(doc.data() as { veiculoId: string; saida: string; chegada: string; concluido: boolean }),
       }));
 
       const novasDatasMaximas: { [key: string]: string } = {};
@@ -78,6 +80,7 @@ export default function AgendarPage() {
           .filter(
             (ag) =>
               ag.veiculoId === veiculo.id &&
+              !ag.concluido && // Ignorar agendamentos concluídos
               new Date(ag.saida) > new Date(dados.saida)
           )
           .sort((a, b) => new Date(a.saida).getTime() - new Date(b.saida).getTime());
@@ -88,14 +91,14 @@ export default function AgendarPage() {
           const maxDevolucao = new Date(saidaProxima.getTime() - 60 * 60 * 1000);
           novasDatasMaximas[veiculo.id] = maxDevolucao.toLocaleString('pt-BR');
         } else {
-          novasDatasMaximas[veiculo.id] = 'Sem agendamentos futuros';
+          novasDatasMaximas[veiculo.id] = 'Disponível sem restrições';
         }
       });
 
       setDatasMaximas(novasDatasMaximas);
     };
 
-    if (veiculos.length > 0) {
+    if (veiculos.length > 0 && dados.saida) {
       carregarDatasMaximas();
     }
   }, [veiculos, dados.saida]);
@@ -129,7 +132,7 @@ export default function AgendarPage() {
       .map((campo) => campo.nome);
 
     if (camposFaltando.length > 0) {
-      return `Preencha os campos obrigatórios: ${camposFaltando.join(', ')}`;
+      return `Por favor, preencha os campos obrigatórios: ${camposFaltando.join(', ')}.`;
     }
 
     // Validação de datas
@@ -137,16 +140,16 @@ export default function AgendarPage() {
     const saida = new Date(dados.saida);
     const chegada = new Date(dados.chegada);
     if (saida < agora) {
-      return 'A data de saída não pode ser anterior à data atual';
+      return 'A data de saída não pode ser anterior à data atual.';
     }
     if (chegada <= saida) {
-      return 'A data de chegada deve ser posterior à data de saída';
+      return 'A data de chegada deve ser posterior à data de saída.';
     }
 
     // Validação do telefone
     const telefoneLimpo = dados.telefone.replace(/\D/g, '');
     if (telefoneLimpo.length < 10 || telefoneLimpo.length > 11) {
-      return 'O número de telefone deve ter 10 ou 11 dígitos';
+      return 'O número de telefone deve ter 10 ou 11 dígitos.';
     }
 
     // Validação de conflitos de agendamento
@@ -154,11 +157,11 @@ export default function AgendarPage() {
     const agendamentosSnap = await getDocs(colAgendamentos);
     const agendamentos = agendamentosSnap.docs.map((doc) => ({
       id: doc.id,
-      ...(doc.data() as { veiculoId: string; saida: string; chegada: string }),
+      ...(doc.data() as { veiculoId: string; saida: string; chegada: string; concluido: boolean }),
     }));
 
     const agendamentoConflitante = agendamentos.find((ag) => {
-      if (ag.veiculoId !== dados.veiculoId) return false;
+      if (ag.veiculoId !== dados.veiculoId || ag.concluido) return false;
       const novaSaida = new Date(dados.saida);
       const novaChegada = new Date(dados.chegada);
       const agSaida = new Date(ag.saida);
@@ -173,7 +176,13 @@ export default function AgendarPage() {
       const horaMinimaEntrega = new Date(
         new Date(agendamentoConflitante.saida).getTime() - 60 * 60 * 1000
       ).toLocaleString('pt-BR');
-      return `Este veículo já está agendado com saída em ${saidaConflito}. A entrega deve ser pelo menos 1 hora antes, até ${horaMinimaEntrega}.`;
+      return `Conflito: Este veículo está agendado com saída em ${saidaConflito}. A entrega deve ser até ${horaMinimaEntrega}.`;
+    }
+
+    // Verificar se o veículo está disponível
+    const veiculoSelecionado = veiculos.find((v) => v.id === dados.veiculoId);
+    if (!veiculoSelecionado || !veiculoSelecionado.status.disponivel) {
+      return 'O veículo selecionado não está disponível para o horário escolhido.';
     }
 
     return '';
@@ -181,15 +190,17 @@ export default function AgendarPage() {
 
   // Submissão do formulário
   const handleSubmit = async () => {
-    const mensagemErro = await validarAgendamento();
-    if (mensagemErro) {
-      setErro(mensagemErro);
-      return;
-    }
-
+    setErro('');
+    setCarregando(true);
     try {
+      const mensagemErro = await validarAgendamento();
+      if (mensagemErro) {
+        setErro(mensagemErro);
+        setCarregando(false);
+        return;
+      }
+
       await criarAgendamento(dados);
-      setErro('');
       setDadosComprovante({
         motorista: dados.motorista,
         matricula: dados.matricula,
@@ -217,6 +228,8 @@ export default function AgendarPage() {
     } catch (error) {
       setErro('Erro ao criar agendamento. Tente novamente.');
       console.error('Erro ao criar agendamento:', error);
+    } finally {
+      setCarregando(false);
     }
   };
 
@@ -234,8 +247,14 @@ export default function AgendarPage() {
           </h1>
 
           {erro && (
-            <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-6 text-sm">
+            <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-6 text-sm flex justify-between items-center">
               {erro}
+              <button
+                onClick={() => setErro('')}
+                className="text-red-700 hover:text-red-900"
+              >
+                ✕
+              </button>
             </div>
           )}
 
@@ -259,7 +278,7 @@ export default function AgendarPage() {
             ) : veiculosFiltrados.length === 0 ? (
               <p className="text-green-600 text-sm">
                 {mostrarDisponiveis
-                  ? 'Nenhum veículo disponível.'
+                  ? 'Nenhum veículo disponível para a data selecionada.'
                   : 'Nenhum veículo encontrado.'}
               </p>
             ) : (
@@ -402,9 +421,12 @@ export default function AgendarPage() {
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-green-50 sm:static sm:p-0 sm:bg-transparent sm:flex sm:space-x-4">
             <button
               onClick={handleSubmit}
-              className="w-full sm:w-auto bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base"
+              disabled={carregando}
+              className={`w-full sm:w-auto bg-green-600 text-white py-2 px-4 rounded-md transition-colors duration-200 text-sm sm:text-base ${
+                carregando ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'
+              }`}
             >
-              Solicitar Agendamento
+              {carregando ? 'Processando...' : 'Solicitar Agendamento'}
             </button>
             <button
               onClick={() => router.push('/veiculos')}
