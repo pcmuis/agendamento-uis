@@ -102,7 +102,7 @@ export async function atualizarVeiculo(id: string, dados: Partial<Veiculo>) {
 }
 
 export async function listarVeiculosComStatus(dataSaida: string): Promise<(Veiculo & {
-  status: { disponivel: boolean; retorno?: string };
+  status: { disponivel: boolean; indisponivelAte?: string };
 })[]> {
   try {
     const [veiculos, agendamentosSnap] = await Promise.all([
@@ -128,7 +128,7 @@ export async function listarVeiculosComStatus(dataSaida: string): Promise<(Veicu
         ...veiculo,
         status: agendamentoAtivo ? {
           disponivel: false,
-          retorno: agendamentoAtivo.chegada,
+          indisponivelAte: agendamentoAtivo.chegada,
         } : {
           disponivel: true,
         },

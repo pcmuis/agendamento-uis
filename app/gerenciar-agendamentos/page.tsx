@@ -129,10 +129,8 @@ export default function GerenciarAgendamentosPage() {
 
     const handleConcluir = async (id: string, veiculoId: string) => {
         if (confirm('Deseja marcar este agendamento como concluído?')) {
-            const agora = new Date().toISOString();
             try {
                 await atualizarAgendamento(id, { concluido: true });
-                await atualizarVeiculo(veiculoId, { disponivel: true });
                 await carregarDados();
             } catch (error) {
                 console.error('Erro ao concluir agendamento:', error);
@@ -141,33 +139,33 @@ export default function GerenciarAgendamentosPage() {
         }
     };
 
-    const handleOrdenar = (coluna: string) => {
-        const novaDirecao = ordenacao.coluna === coluna && ordenacao.direcao === 'asc' ? 'desc' : 'asc';
-        setOrdenacao({ coluna, direcao: novaDirecao });
+    const handleExcluir = async (id: string) => {
+        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+            try {
+                await atualizarAgendamento(id, { concluido: true }); // Marca como concluído ao excluir
+                await carregarDados();
+            } catch (error) {
+                console.error('Erro ao excluir agendamento:', error);
+                alert('Erro ao excluir agendamento. Tente novamente.');
+            }
+        }
     };
 
     const handleEditar = (agendamento: any) => {
         setFormAberto('editar');
         setDadosForm({
             id: agendamento.id,
-            saida: agendamento.saida ? new Date(agendamento.saida).toISOString().slice(0, 16) : '',
-            chegada: agendamento.chegada ? new Date(agendamento.chegada).toISOString().slice(0, 16) : '',
-            veiculoId: agendamento.veiculoId || '',
-            motorista: agendamento.motorista || '',
-            matricula: agendamento.matricula || '',
-            telefone: agendamento.telefone || '',
-            destino: agendamento.destino || '',
-            observacoes: agendamento.observacoes || '',
-            concluido: agendamento.concluido || false,
+            saida: agendamento.saida,
+            chegada: agendamento.chegada,
+            veiculoId: agendamento.veiculoId,
+            motorista: agendamento.motorista,
+            matricula: agendamento.matricula,
+            telefone: agendamento.telefone,
+            destino: agendamento.destino,
+            observacoes: agendamento.observacoes,
+            concluido: agendamento.concluido,
         });
         setErro('');
-    };
-
-    const handleExcluir = async (id: string) => {
-        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-            await excluirAgendamento(id);
-            setAgendamentos(agendamentos.filter((ag) => ag.id !== id));
-        }
     };
 
     const getVeiculoNome = (veiculoId: string) => {
@@ -181,12 +179,12 @@ export default function GerenciarAgendamentosPage() {
     };
 
     const isAgendamentoPassadoOuConcluido = (agendamento: any) => {
-        return agendamento.concluido || new Date(agendamento.chegada) < new Date();
+        return agendamento.concluido;
     };
 
     const getStatusAgendamento = (agendamento: any) => {
         if (agendamento.concluido) return 'Concluído';
-        if (new Date(agendamento.chegada) < new Date()) return 'Atrasado';
+        if (new Date(agendamento.chegada) < new Date()) return 'Chegada Atrasada';
         return 'Ativo';
     };
 
@@ -215,6 +213,13 @@ export default function GerenciarAgendamentosPage() {
     const agendamentosPassadosOuConcluidos = agendamentos
         .filter((ag) => isAgendamentoPassadoOuConcluido(ag))
         .sort((a, b) => new Date(b.chegada).getTime() - new Date(a.chegada).getTime());
+
+    const handleOrdenar = (coluna: string) => {
+        setOrdenacao((prevOrdenacao) => ({
+            coluna,
+            direcao: prevOrdenacao.coluna === coluna && prevOrdenacao.direcao === 'asc' ? 'desc' : 'asc',
+        }));
+    };
 
     const exportarParaExcel = () => {
         const colunas = [
@@ -585,7 +590,7 @@ export default function GerenciarAgendamentosPage() {
                                     </tr>
                                 ) : (
                                     <>
-                                        {agendamentosAtivos.map((ag) => (
+                                        {agendamentos.map((ag) => (
                                             <tr key={ag.id}>
                                                 <td className="p-3 text-sm">
                                                     <span
