@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,8 +8,17 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, logout } = useAuth(); // Added logout
   const router = useRouter();
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      logout(); // Log out the user after inactivity
+      router.push('/login'); // Redirect to login page
+    }, 5 * 60 * 1000); // 15 minutes timeout
+
+    return () => clearTimeout(timeout); // Clear timeout on component unmount
+  }, [logout, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
