@@ -11,12 +11,13 @@ import {
 import { db } from './firebase';
 
 // Definindo o tipo Veiculo para ser usado em todas as funções
-export type Veiculo = {
+export interface Veiculo {
   id?: string;
   placa: string;
   modelo: string;
   disponivel: boolean;
-};
+  retorno?: string; // Add this property if needed
+}
 
 type Agendamento = {
   id: string;

@@ -57,20 +57,21 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
 
   const handleEnviarWhatsApp = () => {
     const mensagem = `📋 *Comprovante de Agendamento de Veículo*\n\n` +
-      `👤 *Motorista*: ${agendamento.motorista}\n` +
-      `🆔 *Matrícula*: ${agendamento.matricula}\n` +
-      `📞 *Telefone*: ${agendamento.telefone}\n` +
-      `📍 *Destino*: ${agendamento.destino}\n` +
-      `${agendamento.observacoes ? `📝 *Observações*: ${agendamento.observacoes}\n` : ''}` +
-      `🚗 *Veículo*: ${agendamento.veiculo}\n` +
-      `📅 *Saída*: ${new Date(agendamento.saida).toLocaleString('pt-BR')}\n` +
-      `📅 *Chegada*: ${new Date(agendamento.chegada).toLocaleString('pt-BR')}\n` +
-      `👥 *Vagas*: ${agendamento.vagas}\n\n` +
-      `📜 *Instruções*\n` +
-      `1️⃣ *Retirada*:\n${instrucoes.retirada.map((item) => `- ${item}`).join('\n')}\n` +
-      `2️⃣ *Zelo*:\n${instrucoes.zelo.map((item) => `- ${item}`).join('\n')}\n` +
-      `3️⃣ *Condução*:\n${instrucoes.conducao.map((item) => `- ${item}`).join('\n')}\n` +
-      `4️⃣ *Devolução*:\n${instrucoes.devolucao.map((item) => `- ${item}`).join('\n')}`;
+        `👤 *Motorista*: ${agendamento.motorista}\n` +
+        `🆔 *Matrícula*: ${agendamento.matricula}\n` +
+        `📞 *Telefone*: ${agendamento.telefone}\n` +
+        `📍 *Destino*: ${agendamento.destino}\n` +
+        `${agendamento.observacoes ? `📝 *Observações*: ${agendamento.observacoes}\n` : ''}` +
+        `🚗 *Veículo*: ${agendamento.veiculo}\n` +
+        `🔖 *Placa*: ${agendamento.placa || 'Não informada'}\n` + // Added 'placa'
+        `📅 *Saída*: ${new Date(agendamento.saida).toLocaleString('pt-BR')}\n` +
+        `📅 *Chegada*: ${new Date(agendamento.chegada).toLocaleString('pt-BR')}\n` +
+        `👥 *Vagas*: ${agendamento.vagas}\n\n` +
+        `📜 *Instruções*\n` +
+        `1️⃣ *Retirada*:\n${instrucoes.retirada.map((item) => `- ${item}`).join('\n')}\n` +
+        `2️⃣ *Zelo*:\n${instrucoes.zelo.map((item) => `- ${item}`).join('\n')}\n` +
+        `3️⃣ *Condução*:\n${instrucoes.conducao.map((item) => `- ${item}`).join('\n')}\n` +
+        `4️⃣ *Devolução*:\n${instrucoes.devolucao.map((item) => `- ${item}`).join('\n')}`;
 
     const url = `https://wa.me/45998394505?text=${encodeURIComponent(mensagem)}`;
     window.open(url, '_blank');

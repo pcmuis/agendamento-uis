@@ -23,8 +23,7 @@ export default function GerenciarAgendamentosPage() {
         telefone: '',
         destino: '',
         observacoes: '',
-        vagas: 1,
-        concluido: false,
+        concluido: false, // Removed 'vagas'
     });
     const [erro, setErro] = useState<string>('');
     const [ordenacao, setOrdenacao] = useState<{ coluna: string; direcao: 'asc' | 'desc' }>({
@@ -52,7 +51,6 @@ export default function GerenciarAgendamentosPage() {
             { nome: 'Matrícula', valor: dados.matricula },
             { nome: 'Telefone', valor: dados.telefone },
             { nome: 'Destino', valor: dados.destino },
-            { nome: 'Vagas Necessárias', valor: dados.vagas > 0 },
         ];
 
         const camposFaltando = camposObrigatorios
@@ -124,7 +122,6 @@ export default function GerenciarAgendamentosPage() {
             telefone: '',
             destino: '',
             observacoes: '',
-            vagas: 1,
             concluido: false,
         });
         setErro('');
@@ -135,7 +132,7 @@ export default function GerenciarAgendamentosPage() {
             const agora = new Date().toISOString();
             try {
                 await atualizarAgendamento(id, { concluido: true });
-                await atualizarVeiculo(veiculoId, { disponivel: true, retorno: agora });
+                await atualizarVeiculo(veiculoId, { disponivel: true });
                 await carregarDados();
             } catch (error) {
                 console.error('Erro ao concluir agendamento:', error);
@@ -161,7 +158,6 @@ export default function GerenciarAgendamentosPage() {
             telefone: agendamento.telefone || '',
             destino: agendamento.destino || '',
             observacoes: agendamento.observacoes || '',
-            vagas: agendamento.vagas || 1,
             concluido: agendamento.concluido || false,
         });
         setErro('');
@@ -230,9 +226,8 @@ export default function GerenciarAgendamentosPage() {
             { header: 'Telefone', key: 'telefone', width: 15 },
             { header: 'Destino', key: 'destino', width: 30 },
             { header: 'Observações', key: 'observacoes', width: 40 },
-            { header: 'Vagas', key: 'vagas', width: 10 },
             { header: 'Status', key: 'status', width: 15 },
-        ];
+        ]; // Removed 'Vagas'
 
         const dados = agendamentos.map((ag) => ({
             saida: new Date(ag.saida).toLocaleString('pt-BR'),
@@ -243,7 +238,6 @@ export default function GerenciarAgendamentosPage() {
             telefone: ag.telefone || '',
             destino: ag.destino || '',
             observacoes: ag.observacoes || '',
-            vagas: ag.vagas || 1,
             status: getStatusAgendamento(ag),
         }));
 
@@ -370,7 +364,6 @@ export default function GerenciarAgendamentosPage() {
                                         telefone: '',
                                         destino: '',
                                         observacoes: '',
-                                        vagas: 1,
                                         concluido: false,
                                     });
                                     setErro('');
@@ -535,24 +528,6 @@ export default function GerenciarAgendamentosPage() {
                                         rows={4}
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-green-700 mb-1">
-                                        Vagas Necessárias
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        value={dadosForm.vagas}
-                                        onChange={(e) =>
-                                            setDadosForm({ ...dadosForm, vagas: parseInt(e.target.value) || 1 })
-                                        }
-                                        className={`w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm ${
-                                            dadosForm.vagas > 0 ? 'text-gray-900' : 'text-gray-500'
-                                        }`}
-                                        placeholder="Vagas necessárias"
-                                        required
-                                    />
-                                </div>
                                 <div className="flex space-x-4">
                                     <button
                                         onClick={handleSubmit}
@@ -585,7 +560,6 @@ export default function GerenciarAgendamentosPage() {
                                         { nome: 'Telefone', coluna: 'telefone' },
                                         { nome: 'Destino', coluna: 'destino' },
                                         { nome: 'Observações', coluna: 'observacoes' },
-                                        { nome: 'Vagas', coluna: 'vagas' },
                                         { nome: 'Ações', coluna: '' },
                                     ].map((col) => (
                                         <th
@@ -605,29 +579,14 @@ export default function GerenciarAgendamentosPage() {
                             <tbody>
                                 {agendamentos.length === 0 ? (
                                     <tr>
-                                        <td colSpan={11} className="p-3 text-sm text-gray-500 text-center">
+                                        <td colSpan={10} className="p-3 text-sm text-gray-500 text-center">
                                             Nenhum agendamento encontrado.
                                         </td>
                                     </tr>
                                 ) : (
                                     <>
-                                        {agendamentosAtivos.length > 0 && (
-                                            <tr>
-                                                <td
-                                                    colSpan={11}
-                                                    className="p-3 text-sm font-medium text-green-800 bg-green-50"
-                                                >
-                                                    Agendamentos Ativos
-                                                </td>
-                                            </tr>
-                                        )}
                                         {agendamentosAtivos.map((ag) => (
-                                            <tr
-                                                key={ag.id}
-                                                className={`border-t border-green-200 hover:bg-green-50 transition-colors ${
-                                                    isVeiculoOcupado(ag.veiculoId) ? 'bg-gray-100' : ''
-                                                }`}
-                                            >
+                                            <tr key={ag.id}>
                                                 <td className="p-3 text-sm">
                                                     <span
                                                         className={`inline-block px-2 py-1 rounded text-xs font-medium ${
@@ -657,130 +616,6 @@ export default function GerenciarAgendamentosPage() {
                                                 <td className="p-3 text-sm text-gray-900">
                                                     {ag.observacoes || '-'}
                                                 </td>
-                                                <td className="p-3 text-sm text-gray-900">{ag.vagas}</td>
-                                                <td className="p-3 text-sm flex space-x-2">
-                                                    <button
-                                                        onClick={() => handleEditar(ag)}
-                                                        className="text-green-600 hover:text-green-800 relative group"
-                                                        title="Editar agendamento"
-                                                    >
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="h-5 w-5"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                            />
-                                                        </svg>
-                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
-                                                            Editar
-                                                        </span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleExcluir(ag.id)}
-                                                        className="text-red-600 hover:text-red-800 relative group"
-                                                        title="Excluir agendamento"
-                                                    >
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="h-5 w-5"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2v1h8V5a2 2 0 00-2-2m-2 4h4"
-                                                            />
-                                                        </svg>
-                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
-                                                            Excluir
-                                                        </span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleConcluir(ag.id, ag.veiculoId)}
-                                                        disabled={ag.concluido}
-                                                        className={`relative group ${
-                                                            ag.concluido
-                                                                ? 'text-gray-400 cursor-not-allowed'
-                                                                : 'text-blue-600 hover:text-blue-800'
-                                                        }`}
-                                                        title={ag.concluido ? 'Já concluído' : 'Concluir agendamento'}
-                                                    >
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="h-5 w-5"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M5 13l4 4L19 7"
-                                                            />
-                                                        </svg>
-                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
-                                                            {ag.concluido ? 'Concluído' : 'Concluir'}
-                                                        </span>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {agendamentosPassadosOuConcluidos.length > 0 && (
-                                            <tr>
-                                                <td
-                                                    colSpan={11}
-                                                    className="p-3 text-sm font-medium text-green-800 bg-yellow-50"
-                                                >
-                                                    Agendamentos Passados/Concluídos
-                                                </td>
-                                            </tr>
-                                        )}
-                                        {agendamentosPassadosOuConcluidos.map((ag) => (
-                                            <tr
-                                                key={ag.id}
-                                                className={`border-t border-green-200 bg-yellow-50 hover:bg-yellow-100 transition-colors`}
-                                            >
-                                                <td className="p-3 text-sm">
-                                                    <span
-                                                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                                            getStatusAgendamento(ag) === 'Ativo'
-                                                                ? 'bg-green-100 text-green-800'
-                                                                : getStatusAgendamento(ag) === 'Concluído'
-                                                                ? 'bg-blue-100 text-blue-800'
-                                                                : 'bg-red-100 text-red-800'
-                                                        }`}
-                                                    >
-                                                        {getStatusAgendamento(ag)}
-                                                    </span>
-                                                </td>
-                                                <td className="p-3 text-sm text-gray-900">
-                                                    {new Date(ag.saida).toLocaleString('pt-BR')}
-                                                </td>
-                                                <td className="p-3 text-sm text-gray-900">
-                                                    {new Date(ag.chegada).toLocaleString('pt-BR')}
-                                                </td>
-                                                <td className="p-3 text-sm text-gray-900">
-                                                    {getVeiculoNome(ag.veiculoId)}
-                                                </td>
-                                                <td className="p-3 text-sm text-gray-900">{ag.motorista}</td>
-                                                <td className="p-3 text-sm text-gray-900">{ag.matricula}</td>
-                                                <td className="p-3 text-sm text-gray-900">{ag.telefone}</td>
-                                                <td className="p-3 text-sm text-gray-900">{ag.destino}</td>
-                                                <td className="p-3 text-sm text-gray-900">
-                                                    {ag.observacoes || '-'}
-                                                </td>
-                                                <td className="p-3 text-sm text-gray-900">{ag.vagas}</td>
                                                 <td className="p-3 text-sm flex space-x-2">
                                                     <button
                                                         onClick={() => handleEditar(ag)}
