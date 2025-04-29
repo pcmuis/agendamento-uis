@@ -34,7 +34,7 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
 
   const instrucoes = {
     retirada: [
-      'Retire o veículo na garagem central (endereço: [inserir endereço]) no horário agendado.',
+      'Retire a chave do veículo no PCM no horário agendado.',
       'Apresente documento de identificação e matrícula ao responsável.',
       'Verifique o estado do veículo (combustível, pneus, lataria) e reporte qualquer problema antes de sair.',
     ],
