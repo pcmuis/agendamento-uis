@@ -46,9 +46,9 @@ export default function AdministracaoPage() {
                             </div>
                         </a>
 
-                        {/* Card Usuários */}
+                        {/* Card Motoristas */}
                         <a 
-                            href="/usuarios" 
+                            href="/motoristas" 
                             className="bg-white p-6 rounded-lg shadow-md border border-green-200 hover:shadow-lg transition-shadow duration-200"
                         >
                             <div className="flex items-center space-x-4">
@@ -58,8 +58,8 @@ export default function AdministracaoPage() {
                                     </svg>
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-medium text-green-700">Usuários</h2>
-                                    <p className="text-sm text-gray-600">Gerencie os usuários do sistema</p>
+                                    <h2 className="text-xl font-medium text-green-700">Motoristas</h2>
+                                    <p className="text-sm text-gray-600">Gerencie os motoristas autorizados do sistema</p>
                                 </div>
                             </div>
                         </a>

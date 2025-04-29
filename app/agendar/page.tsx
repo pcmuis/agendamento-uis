@@ -19,9 +19,19 @@ type AgendamentoDados = {
   observacoes: string;
 };
 
+type Motorista = {
+  id: string;
+  nome: string;
+  matricula: string;
+  setor: string;
+  cargo: string;
+  telefone: string;
+};
+
 export default function AgendarPage() {
   const router = useRouter();
   const [veiculos, setVeiculos] = useState<any[]>([]);
+  const [motoristas, setMotoristas] = useState<Motorista[]>([]);
   const [dados, setDados] = useState<AgendamentoDados>({
     saida: '',
     chegada: '',
@@ -33,11 +43,29 @@ export default function AgendarPage() {
     observacoes: '',
   });
   const [erro, setErro] = useState<string>('');
+  const [erroMatricula, setErroMatricula] = useState<string>('');
   const [carregando, setCarregando] = useState<boolean>(false);
   const [mostrarDisponiveis, setMostrarDisponiveis] = useState<boolean>(true);
   const [datasMaximas, setDatasMaximas] = useState<{ [key: string]: string }>({});
   const [mostrarComprovante, setMostrarComprovante] = useState<boolean>(false);
   const [dadosComprovante, setDadosComprovante] = useState<any>(null);
+
+  useEffect(() => {
+    const carregarMotoristas = async () => {
+      try {
+        const colMotoristas = collection(db, 'motoristas');
+        const snapshot = await getDocs(colMotoristas);
+        const lista = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Motorista));
+        setMotoristas(lista);
+      } catch (error) {
+        console.error('Erro ao carregar motoristas:', error);
+      }
+    };
+    carregarMotoristas();
+  }, []);
 
   useEffect(() => {
     const carregarVeiculos = async () => {
@@ -50,7 +78,7 @@ export default function AgendarPage() {
       setCarregando(true);
       try {
         const lista = await listarVeiculosComStatus(dados.saida);
-        setVeiculos(lista); // Carrega todos os veículos, disponíveis ou não
+        setVeiculos(lista);
       } catch (error) {
         setErro('Erro ao carregar veículos. Tente novamente.');
         console.error('Erro ao carregar veículos:', error);
@@ -100,6 +128,27 @@ export default function AgendarPage() {
     }
   }, [veiculos, dados.saida]);
 
+  const handleMatriculaChange = (matricula: string) => {
+    setDados((prev) => ({ ...prev, matricula }));
+    setErro('');
+    setErroMatricula('');
+
+    const motoristaEncontrado = motoristas.find((m) => m.matricula === matricula);
+
+    if (motoristaEncontrado) {
+      setDados((prev) => ({
+        ...prev,
+        motorista: motoristaEncontrado.nome,
+        telefone: motoristaEncontrado.telefone || prev.telefone,
+      }));
+    } else {
+      setDados((prev) => ({ ...prev, motorista: '', telefone: '' }));
+      if (matricula) {
+        setErroMatricula('Matrícula não autorizada para dirigir.');
+      }
+    }
+  };
+
   const formatarTelefone = (valor: string) => {
     const apenasNumeros = valor.replace(/\D/g, '');
     if (apenasNumeros.length <= 2) return apenasNumeros;
@@ -141,6 +190,11 @@ export default function AgendarPage() {
     const telefoneLimpo = dados.telefone.replace(/\D/g, '');
     if (telefoneLimpo.length < 10 || telefoneLimpo.length > 11) {
       return 'O número de telefone deve ter 10 ou 11 dígitos.';
+    }
+
+    const motoristaEncontrado = motoristas.find((m) => m.matricula === dados.matricula);
+    if (!motoristaEncontrado) {
+      return 'Matrícula não autorizada. Verifique ou cadastre o motorista.';
     }
 
     const colAgendamentos = collection(db, 'agendamentos');
@@ -230,28 +284,28 @@ export default function AgendarPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-green-50 p-4 sm:p-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-semibold text-green-800 mb-6 sm:mb-8">
+      <main className="min-h-screen bg-green-50 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-900 mb-6 sm:mb-8">
             Solicitação de Agendamento
           </h1>
 
           {erro && (
-            <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-6 text-sm flex justify-between items-center">
+            <div className="bg-red-100 text-red-800 p-4 rounded-lg mb-6 text-sm sm:text-base flex justify-between items-center shadow-sm">
               {erro}
               <button
                 onClick={() => setErro('')}
-                className="text-red-700 hover:text-red-900"
+                className="text-red-800 hover:text-red-900"
               >
                 ✕
               </button>
             </div>
           )}
 
-          <div className="mb-6">
-            <h2 className="text-lg font-medium text-green-700 mb-3">Seleção de Veículo</h2>
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-green-800 mb-4">Seleção de Veículo</h2>
             <div className="flex items-center mb-4">
-              <label className="mr-3 text-sm font-medium text-green-700">
+              <label className="mr-3 text-sm sm:text-base font-medium text-green-700">
                 Mostrar apenas disponíveis
               </label>
               <input
@@ -266,13 +320,13 @@ export default function AgendarPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-600"></div>
               </div>
             ) : veiculosFiltrados.length === 0 ? (
-              <p className="text-green-600 text-sm">
+              <p className="text-green-600 text-sm sm:text-base">
                 {mostrarDisponiveis
                   ? 'Nenhum veículo disponível para a data selecionada.'
                   : 'Nenhum veículo encontrado.'}
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {veiculosFiltrados.map((v) => (
                   <div
                     key={v.id}
@@ -287,7 +341,7 @@ export default function AgendarPage() {
                   >
                     <p className="font-semibold text-green-900 text-sm sm:text-base">{v.modelo}</p>
                     <p className="text-xs sm:text-sm text-green-600">{v.placa}</p>
-                    <p className="text-xs text-green-500 mt-1">
+                    <p className="text-xs sm:text-sm text-green-500 mt-1">
                       {v.status.disponivel
                         ? `Disponível até: ${datasMaximas[v.id] || 'Carregando...'}`
                         : `Indisponível até: ${v.status.indisponivelAte ? new Date(v.status.indisponivelAte).toLocaleString('pt-BR') : 'Carregando...'}`}
@@ -298,11 +352,11 @@ export default function AgendarPage() {
             )}
           </div>
 
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-green-200 mb-20 sm:mb-8">
-            <h2 className="text-lg font-medium text-green-700 mb-4">Detalhes do Agendamento</h2>
-            <div className="space-y-4">
+          <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl shadow-lg border border-green-200 mb-20 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold text-green-800 mb-4 sm:mb-6">Detalhes do Agendamento</h2>
+            <div className="space-y-4 sm:space-y-6">
               <div>
-                <label className="block text-sm font-medium text-green-700 mb-1">
+                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">
                   Data e Hora de Saída
                 </label>
                 <input
@@ -310,12 +364,12 @@ export default function AgendarPage() {
                   value={dados.saida}
                   onChange={(e) => setDados({ ...dados, saida: e.target.value })}
                   min={getMinDate()}
-                  className="w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900"
+                  className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-green-700 mb-1">
+                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">
                   Data e Hora de Chegada
                 </label>
                 <input
@@ -323,70 +377,77 @@ export default function AgendarPage() {
                   value={dados.chegada}
                   onChange={(e) => setDados({ ...dados, chegada: e.target.value })}
                   min={dados.saida || getMinDate()}
-                  className="w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900"
+                  className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-green-700 mb-1">
-                  Motorista
-                </label>
-                <input
-                  type="text"
-                  value={dados.motorista}
-                  onChange={(e) => setDados({ ...dados, motorista: e.target.value })}
-                  className="w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900"
-                  placeholder="Nome do motorista"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-green-700 mb-1">
+              <div className="relative">
+                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">
                   Matrícula
                 </label>
                 <input
                   type="text"
                   value={dados.matricula}
-                  onChange={(e) => setDados({ ...dados, matricula: e.target.value })}
-                  className="w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900"
-                  placeholder="Matrícula"
+                  onChange={(e) => handleMatriculaChange(e.target.value)}
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all ${
+                    erroMatricula ? 'border-red-300' : 'border-green-300'
+                  }`}
+                  placeholder="Digite a matrícula"
+                  required
+                />
+                {erroMatricula && (
+                  <p className="mt-1 text-xs text-red-600 font-medium animate-fade-in">
+                    {erroMatricula}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">
+                  Motorista
+                </label>
+                <input
+                  type="text"
+                  value={dados.motorista}
+                  readOnly
+                  className="w-full p-3 border border-green-300 rounded-lg bg-gray-100 text-gray-900 text-sm sm:text-base placeholder-gray-500 transition-all"
+                  placeholder="Nome será preenchido automaticamente"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-green-700 mb-1">
+                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">
                   Telefone do motorista
                 </label>
                 <input
                   type="tel"
                   value={dados.telefone}
                   onChange={(e) => setDados({ ...dados, telefone: formatarTelefone(e.target.value) })}
-                  className="w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900"
+                  className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
                   placeholder="(XX) 9XXXX-XXXX"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-green-700 mb-1">
+                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">
                   Destino
                 </label>
                 <input
                   type="text"
                   value={dados.destino}
                   onChange={(e) => setDados({ ...dados, destino: e.target.value })}
-                  className="w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900"
-                  placeholder="Destino"
+                  className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
+                  placeholder="Digite o destino"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-green-700 mb-1">
+                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">
                   Observações
                 </label>
                 <textarea
                   value={dados.observacoes}
                   onChange={(e) => setDados({ ...dados, observacoes: e.target.value })}
-                  className="w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900"
+                  className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
                   placeholder="Notas ou informações adicionais"
                   rows={4}
                 />
@@ -397,16 +458,16 @@ export default function AgendarPage() {
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-green-50 sm:static sm:p-0 sm:bg-transparent sm:flex sm:space-x-4">
             <button
               onClick={handleSubmit}
-              disabled={carregando}
-              className={`w-full sm:w-auto bg-green-600 text-white py-2 px-4 rounded-md transition-colors duration-200 text-sm sm:text-base ${
-                carregando ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'
+              disabled={carregando || !!erroMatricula}
+              className={`w-full sm:w-auto bg-green-600 text-white py-3 px-6 rounded-lg transition-colors duration-200 text-sm sm:text-base font-medium ${
+                carregando || erroMatricula ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'
               }`}
             >
               {carregando ? 'Processando...' : 'Solicitar Agendamento'}
             </button>
             <button
               onClick={() => router.push('/veiculos')}
-              className="w-full sm:w-auto bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors duration-200 text-sm sm:text-base mt-2 sm:mt-0"
+              className="w-full sm:w-auto bg-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-400 transition-colors duration-200 text-sm sm:text-base font-medium mt-2 sm:mt-0"
             >
               Cancelar
             </button>

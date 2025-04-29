@@ -183,10 +183,26 @@ export default function GerenciarAgendamentosPage() {
     };
 
     const getStatusAgendamento = (agendamento: any) => {
+        const agora = new Date();
+        const chegada = new Date(agendamento.chegada);
+        const saida = new Date(agendamento.saida);
+
         if (agendamento.concluido) return 'Concluído';
-        if (new Date(agendamento.chegada) < new Date()) return 'Chegada Atrasada';
-        return 'Ativo';
+        if (saida <= agora && chegada >= agora) return 'Em Uso';
+        if (chegada < agora) return 'Atrasado';
+        return 'Futuro';
     };
+
+    // Categorizar agendamentos
+    const agendamentosEmUso = agendamentos.filter(
+        (ag) => getStatusAgendamento(ag) === 'Em Uso'
+    );
+    const agendamentosAtrasados = agendamentos.filter(
+        (ag) => getStatusAgendamento(ag) === 'Atrasado'
+    );
+    const agendamentosFuturos = agendamentos.filter(
+        (ag) => getStatusAgendamento(ag) === 'Futuro'
+    );
 
     // Separate and sort agendamentos
     const agendamentosAtivos = agendamentos
@@ -590,115 +606,158 @@ export default function GerenciarAgendamentosPage() {
                                     </tr>
                                 ) : (
                                     <>
-                                        {agendamentos.map((ag) => (
-                                            <tr key={ag.id}>
-                                                <td className="p-3 text-sm">
-                                                    <span
-                                                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                                            getStatusAgendamento(ag) === 'Ativo'
-                                                                ? 'bg-green-100 text-green-800'
-                                                                : getStatusAgendamento(ag) === 'Concluído'
-                                                                ? 'bg-blue-100 text-blue-800'
-                                                                : 'bg-red-100 text-red-800'
-                                                        }`}
-                                                    >
-                                                        {getStatusAgendamento(ag)}
-                                                    </span>
-                                                </td>
-                                                <td className="p-3 text-sm text-gray-900">
-                                                    {new Date(ag.saida).toLocaleString('pt-BR')}
-                                                </td>
-                                                <td className="p-3 text-sm text-gray-900">
-                                                    {new Date(ag.chegada).toLocaleString('pt-BR')}
-                                                </td>
-                                                <td className="p-3 text-sm text-gray-900">
-                                                    {getVeiculoNome(ag.veiculoId)}
-                                                </td>
-                                                <td className="p-3 text-sm text-gray-900">{ag.motorista}</td>
-                                                <td className="p-3 text-sm text-gray-900">{ag.matricula}</td>
-                                                <td className="p-3 text-sm text-gray-900">{ag.telefone}</td>
-                                                <td className="p-3 text-sm text-gray-900">{ag.destino}</td>
-                                                <td className="p-3 text-sm text-gray-900">
-                                                    {ag.observacoes || '-'}
-                                                </td>
-                                                <td className="p-3 text-sm flex space-x-2">
-                                                    <button
-                                                        onClick={() => handleEditar(ag)}
-                                                        className="text-green-600 hover:text-green-800 relative group"
-                                                        title="Editar agendamento"
-                                                    >
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="h-5 w-5"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                            />
-                                                        </svg>
-                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
-                                                            Editar
-                                                        </span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleExcluir(ag.id)}
-                                                        className="text-red-600 hover:text-red-800 relative group"
-                                                        title="Excluir agendamento"
-                                                    >
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="h-5 w-5"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a2 2 0 00-2 2v1h8V5a2 2 0 00-2-2m-2 4h4"
-                                                            />
-                                                        </svg>
-                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
-                                                            Excluir
-                                                        </span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleConcluir(ag.id, ag.veiculoId)}
-                                                        disabled={ag.concluido}
-                                                        className={`relative group ${
-                                                            ag.concluido
-                                                                ? 'text-gray-400 cursor-not-allowed'
-                                                                : 'text-blue-600 hover:text-blue-800'
-                                                        }`}
-                                                        title={ag.concluido ? 'Já concluído' : 'Concluir agendamento'}
-                                                    >
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="h-5 w-5"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M5 13l4 4L19 7"
-                                                            />
-                                                        </svg>
-                                                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-8">
-                                                            {ag.concluido ? 'Concluído' : 'Concluir'}
-                                                        </span>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {/* Agendamentos em uso */}
+                                        {agendamentosEmUso.length > 0 && (
+                                            <>
+                                                <tr>
+                                                    <td colSpan={10} className="bg-gray-100 text-gray-800 font-semibold p-3">
+                                                        Veículos em Uso
+                                                    </td>
+                                                </tr>
+                                                {agendamentosEmUso.map((ag) => (
+                                                    <tr key={ag.id}>
+                                                        <td className="p-3 text-sm">
+                                                            <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-800">
+                                                                Em Uso
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {new Date(ag.saida).toLocaleString('pt-BR')}
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {new Date(ag.chegada).toLocaleString('pt-BR')}
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {getVeiculoNome(ag.veiculoId)}
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.motorista}</td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.matricula}</td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.telefone}</td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.destino}</td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {ag.observacoes || '-'}
+                                                        </td>
+                                                        <td className="p-3 text-sm flex space-x-2">
+                                                            {/* Botões de ação */}
+                                                            <button
+                                                                onClick={() => handleEditar(ag)}
+                                                                className="text-green-600 hover:text-green-800"
+                                                            >
+                                                                Editar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleExcluir(ag.id)}
+                                                                className="text-red-600 hover:text-red-800"
+                                                            >
+                                                                Excluir
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </>
+                                        )}
+
+                                        {/* Agendamentos atrasados */}
+                                        {agendamentosAtrasados.length > 0 && (
+                                            <>
+                                                <tr>
+                                                    <td colSpan={10} className="bg-red-100 text-red-800 font-semibold p-3">
+                                                        Veículos Atrasados
+                                                    </td>
+                                                </tr>
+                                                {agendamentosAtrasados.map((ag) => (
+                                                    <tr key={ag.id}>
+                                                        <td className="p-3 text-sm">
+                                                            <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-red-200 text-red-800">
+                                                                Atrasado
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {new Date(ag.saida).toLocaleString('pt-BR')}
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {new Date(ag.chegada).toLocaleString('pt-BR')}
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {getVeiculoNome(ag.veiculoId)}
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.motorista}</td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.matricula}</td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.telefone}</td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.destino}</td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {ag.observacoes || '-'}
+                                                        </td>
+                                                        <td className="p-3 text-sm flex space-x-2">
+                                                            {/* Botões de ação */}
+                                                            <button
+                                                                onClick={() => handleEditar(ag)}
+                                                                className="text-green-600 hover:text-green-800"
+                                                            >
+                                                                Editar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleExcluir(ag.id)}
+                                                                className="text-red-600 hover:text-red-800"
+                                                            >
+                                                                Excluir
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </>
+                                        )}
+
+                                        {/* Agendamentos futuros */}
+                                        {agendamentosFuturos.length > 0 && (
+                                            <>
+                                                <tr>
+                                                    <td colSpan={10} className="bg-green-100 text-green-800 font-semibold p-3">
+                                                        Veículos Agendados para o Futuro
+                                                    </td>
+                                                </tr>
+                                                {agendamentosFuturos.map((ag) => (
+                                                    <tr key={ag.id}>
+                                                        <td className="p-3 text-sm">
+                                                            <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-green-200 text-green-800">
+                                                                Futuro
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {new Date(ag.saida).toLocaleString('pt-BR')}
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {new Date(ag.chegada).toLocaleString('pt-BR')}
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {getVeiculoNome(ag.veiculoId)}
+                                                        </td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.motorista}</td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.matricula}</td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.telefone}</td>
+                                                        <td className="p-3 text-sm text-gray-900">{ag.destino}</td>
+                                                        <td className="p-3 text-sm text-gray-900">
+                                                            {ag.observacoes || '-'}
+                                                        </td>
+                                                        <td className="p-3 text-sm flex space-x-2">
+                                                            {/* Botões de ação */}
+                                                            <button
+                                                                onClick={() => handleEditar(ag)}
+                                                                className="text-green-600 hover:text-green-800"
+                                                            >
+                                                                Editar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleExcluir(ag.id)}
+                                                                className="text-red-600 hover:text-red-800"
+                                                            >
+                                                                Excluir
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </>
+                                        )}
                                     </>
                                 )}
                             </tbody>
