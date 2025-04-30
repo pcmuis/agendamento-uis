@@ -7,6 +7,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/app/lib/firebase';
 import { useRouter } from 'next/navigation';
 import Comprovante from '../confirmacao/comprovante';
+import ReactModal from 'react-modal'; // Adicione esta importação para a janela flutuante
 
 type AgendamentoDados = {
   saida: string;
@@ -49,6 +50,9 @@ export default function AgendarPage() {
   const [datasMaximas, setDatasMaximas] = useState<{ [key: string]: string }>({});
   const [mostrarComprovante, setMostrarComprovante] = useState<boolean>(false);
   const [dadosComprovante, setDadosComprovante] = useState<any>(null);
+  const [mostrarAgendamentos, setMostrarAgendamentos] = useState<boolean>(false);
+  const [dataSelecionada, setDataSelecionada] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [agendamentosDia, setAgendamentosDia] = useState<any[]>([]);
 
   useEffect(() => {
     const carregarMotoristas = async () => {
@@ -127,6 +131,45 @@ export default function AgendarPage() {
       carregarDatasMaximas();
     }
   }, [veiculos, dados.saida]);
+
+  useEffect(() => {
+    const carregarAgendamentosComPlacas = async () => {
+      try {
+        const colVeiculos = collection(db, 'veiculos');
+        const veiculosSnap = await getDocs(colVeiculos);
+        const veiculosMap = veiculosSnap.docs.reduce((map, doc) => {
+          const data = doc.data();
+          map[doc.id] = data.placa;
+          return map;
+        }, {} as Record<string, string>);
+
+        const colAgendamentos = collection(db, 'agendamentos');
+        const snapshot = await getDocs(colAgendamentos);
+        const agendamentos = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as { veiculoId: string; saida: string; chegada: string }),
+          }))
+          .filter(
+            (ag) =>
+              new Date(ag.saida).toISOString().slice(0, 10) === dataSelecionada
+          )
+          .map((ag) => ({
+            ...ag,
+            placa: veiculosMap[ag.veiculoId] || 'Placa não encontrada',
+          }))
+          .sort((a, b) => new Date(a.saida).getTime() - new Date(b.saida).getTime()); // Ordena pela data de saída
+
+        setAgendamentosDia(agendamentos);
+      } catch (error) {
+        console.error('Erro ao carregar agendamentos com placas:', error);
+      }
+    };
+
+    if (mostrarAgendamentos) {
+      carregarAgendamentosComPlacas();
+    }
+  }, [mostrarAgendamentos, dataSelecionada]);
 
   const handleMatriculaChange = (matricula: string) => {
     setDados((prev) => ({ ...prev, matricula }));
@@ -465,12 +508,6 @@ export default function AgendarPage() {
             >
               {carregando ? 'Processando...' : 'Solicitar Agendamento'}
             </button>
-            <button
-              onClick={() => router.push('/veiculos')}
-              className="w-full sm:w-auto bg-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-400 transition-colors duration-200 text-sm sm:text-base font-medium mt-2 sm:mt-0"
-            >
-              Cancelar
-            </button>
           </div>
         </div>
       </main>
@@ -480,6 +517,56 @@ export default function AgendarPage() {
           onClose={() => setMostrarComprovante(false)}
         />
       )}
+      <div className="fixed top-4 left-4 right-4 sm:right-0 sm:left-auto flex justify-center sm:justify-end z-50">
+        <div className="w-full sm:w-80">
+          <button
+            onClick={() => setMostrarAgendamentos(!mostrarAgendamentos)}
+            className="bg-blue-600 text-white py-2 px-4 rounded-lg shadow-lg hover:bg-blue-700 transition-all w-full"
+          >
+            {mostrarAgendamentos ? 'Fechar Agendamentos' : 'Ver Agendamentos'}
+          </button>
+
+          {mostrarAgendamentos && (
+            <div className="mt-4 bg-white/80 backdrop-blur-md rounded-xl shadow-lg p-4 max-h-[80vh] overflow-y-auto">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 text-center">Agendamentos</h2>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Data</label>
+                <input
+                  type="date"
+                  value={dataSelecionada}
+                  onChange={(e) => setDataSelecionada(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                />
+              </div>
+              {agendamentosDia.length === 0 ? (
+                <p className="text-gray-500 text-center">Nenhum agendamento encontrado para esta data.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {agendamentosDia.map((agendamento) => (
+                    <li
+                      key={agendamento.id}
+                      className="p-3 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition"
+                    >
+                      <p className="text-sm text-gray-800">
+                        <span className="font-medium">Veículo:</span> {agendamento.placa}
+                      </p>
+                      <p className="text-sm text-gray-800">
+                        <span className="font-medium">Saída:</span> {new Date(agendamento.saida).toLocaleString('pt-BR')}
+                      </p>
+                      <p className="text-sm text-gray-800">
+                        <span className="font-medium">Chegada:</span> {new Date(agendamento.chegada).toLocaleString('pt-BR')}
+                      </p>
+                      <p className="text-sm text-gray-800">
+                        <span className="font-medium">Destino:</span> {agendamento.destino}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </>
   );
 }
