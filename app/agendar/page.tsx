@@ -7,7 +7,6 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/app/lib/firebase';
 import { useRouter } from 'next/navigation';
 import Comprovante from '../confirmacao/comprovante';
-import ReactModal from 'react-modal'; // Adicione esta importação para a janela flutuante
 
 type AgendamentoDados = {
   saida: string;
