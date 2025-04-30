@@ -14,7 +14,6 @@ type ComprovanteProps = {
     placa?: string;
     saida: string;
     chegada: string;
-    vagas: number;
   };
   onClose: () => void;
 };
@@ -66,7 +65,6 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
         `🔖 *Placa*: ${agendamento.placa || 'Não informada'}\n` + // Added 'placa'
         `📅 *Saída*: ${new Date(agendamento.saida).toLocaleString('pt-BR')}\n` +
         `📅 *Chegada*: ${new Date(agendamento.chegada).toLocaleString('pt-BR')}\n` +
-        `👥 *Vagas*: ${agendamento.vagas}\n\n` +
         `📜 *Instruções*\n` +
         `1️⃣ *Retirada*:\n${instrucoes.retirada.map((item) => `- ${item}`).join('\n')}\n` +
         `2️⃣ *Zelo*:\n${instrucoes.zelo.map((item) => `- ${item}`).join('\n')}\n` +
@@ -87,7 +85,6 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
       `Veículo: ${agendamento.veiculo}\n` +
       `Saída: ${new Date(agendamento.saida).toLocaleString('pt-BR')}\n` +
       `Chegada: ${new Date(agendamento.chegada).toLocaleString('pt-BR')}\n` +
-      `Vagas: ${agendamento.vagas}\n\n` +
       `Instruções\n` +
       `1. Retirada:\n${instrucoes.retirada.map((item) => `- ${item}`).join('\n')}\n` +
       `2. Zelo:\n${instrucoes.zelo.map((item) => `- ${item}`).join('\n')}\n` +
@@ -160,8 +157,6 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
             <span className="text-wrap">{new Date(agendamento.chegada).toLocaleString('pt-BR')}</span>
           </p>
           <p className="flex flex-wrap">
-            <span className="font-medium text-green-700 w-24 sm:w-28 shrink-0">Vagas:</span>
-            <span className="text-wrap">{agendamento.vagas}</span>
           </p>
         </div>
         <div className="mt-6">
