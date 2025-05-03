@@ -1,11 +1,13 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 type AuthContextType = {
   user: string | null;
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   loading: boolean;
 };
 
@@ -16,28 +18,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar se há um usuário logado no localStorage ao carregar
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(storedUser);
-    }
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser ? firebaseUser.email : null);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = async (username: string, password: string) => {
-    // Aqui você pode implementar a lógica real de autenticação
-    // Por enquanto, vamos usar um login mockado
-    if (username === 'admin' && password === 'admin123') {
-      setUser(username);
-      localStorage.setItem('user', username);
-      return true;
-    }
-    return false;
+  const login = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = async () => {
+    await signOut(auth);
   };
 
   return (

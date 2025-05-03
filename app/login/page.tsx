@@ -1,34 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, logout } = useAuth(); // Added logout
+  const { login } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      logout(); // Log out the user after inactivity
-      router.push('/login'); // Redirect to login page
-    }, 5 * 60 * 1000); // 15 minutes timeout
-
-    return () => clearTimeout(timeout); // Clear timeout on component unmount
-  }, [logout, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    const success = await login(username, password);
-    if (success) {
+
+    try {
+      await login(email, password);
       router.push('/administracao');
-    } else {
-      setError('Credenciais inválidas. Tente novamente.');
+    } catch (err) {
+      setError('Erro ao fazer login. Verifique suas credenciais.');
     }
   };
 
@@ -47,14 +38,14 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-green-700 mb-1">
-              Usuário
+            <label htmlFor="email" className="block text-sm font-medium text-green-700 mb-1">
+              Email
             </label>
             <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
               required
             />
