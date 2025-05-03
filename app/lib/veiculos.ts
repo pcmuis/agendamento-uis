@@ -4,27 +4,29 @@ import {
   addDoc,
   deleteDoc,
   doc,
-  query,
-  where,
   updateDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
-// Definindo o tipo Veiculo para ser usado em todas as funções
 export interface Veiculo {
-  id?: string;
+  id: string;
   placa: string;
   modelo: string;
   disponivel: boolean;
-  retorno?: string; // Add this property if needed
 }
 
-type Agendamento = {
+export interface Agendamento {
   id: string;
   veiculoId: string;
+  destino: string;
   saida: string;
   chegada: string;
-};
+  motorista?: string;
+  matricula?: string;
+  telefone?: string;
+  observacoes?: string;
+  concluido?: boolean;
+}
 
 const colVeiculos = collection(db, 'veiculos');
 const colAgendamentos = collection(db, 'agendamentos');
@@ -32,29 +34,22 @@ const colAgendamentos = collection(db, 'agendamentos');
 export async function listarVeiculos(): Promise<Veiculo[]> {
   try {
     const snapshot = await getDocs(colVeiculos);
-    const veiculos = snapshot.docs.map((doc) => {
-      if (!doc.exists()) {
-        console.warn('Documento não encontrado');
-        return null;
-      }
-      
-      const data = doc.data();
-      const veiculo: Veiculo = {
-        id: doc.id,
-        placa: data.placa || '',
-        modelo: data.modelo || '',
-        disponivel: data.disponivel !== false, // default true
-      };
+    const veiculos = snapshot.docs
+      .map((doc) => {
+        if (!doc.exists()) {
+          console.warn('Documento não encontrado');
+          return null;
+        }
+        const data = doc.data();
+        return {
+          id: doc.id,
+          placa: data.placa || '',
+          modelo: data.modelo || '',
+          disponivel: data.disponivel !== false,
+        } as Veiculo;
+      })
+      .filter((v): v is Veiculo => v !== null);
 
-      if (!doc.id) {
-        console.error('Documento sem ID encontrado:', data);
-        throw new Error('Documento sem ID');
-      }
-
-      return veiculo;
-    }).filter((v): v is Veiculo => v !== null);
-
-    console.log('Veículos retornados:', veiculos);
     return veiculos;
   } catch (error) {
     console.error('Erro ao listar veículos:', error);
@@ -62,9 +57,40 @@ export async function listarVeiculos(): Promise<Veiculo[]> {
   }
 }
 
+export async function listarAgendamentos(): Promise<Agendamento[]> {
+  try {
+    const snapshot = await getDocs(colAgendamentos);
+    const agendamentos = snapshot.docs
+      .map((doc) => {
+        if (!doc.exists()) {
+          console.warn('Documento de agendamento não encontrado');
+          return null;
+        }
+        const data = doc.data();
+        return {
+          id: doc.id,
+          veiculoId: data.veiculoId || '',
+          destino: data.destino || '',
+          saida: data.saida || '',
+          chegada: data.chegada || '',
+          motorista: data.motorista || '',
+          matricula: data.matricula || '',
+          telefone: data.telefone || '',
+          observacoes: data.observacoes || '',
+          concluido: data.concluido || false,
+        } as Agendamento;
+      })
+      .filter((a): a is Agendamento => a !== null);
+
+    return agendamentos;
+  } catch (error) {
+    console.error('Erro ao listar agendamentos:', error);
+    throw new Error('Falha ao carregar agendamentos');
+  }
+}
+
 export async function criarVeiculo(dados: Omit<Veiculo, 'id'>): Promise<string> {
   try {
-    // Validação básica dos dados
     if (!dados.placa || !dados.modelo) {
       throw new Error('Placa e modelo são obrigatórios');
     }
@@ -74,7 +100,7 @@ export async function criarVeiculo(dados: Omit<Veiculo, 'id'>): Promise<string> 
       modelo: dados.modelo,
       disponivel: dados.disponivel !== false,
     });
-    
+
     return docRef.id;
   } catch (error) {
     console.error('Erro ao criar veículo:', error);
@@ -96,42 +122,44 @@ export async function removerVeiculo(id: string): Promise<void> {
   }
 }
 
-export async function atualizarVeiculo(id: string, dados: Partial<Veiculo>) {
+export async function atualizarVeiculo(id: string, dados: Partial<Veiculo>): Promise<void> {
+  try {
     const docRef = doc(db, 'veiculos', id);
     await updateDoc(docRef, dados);
+  } catch (error) {
+    console.error(`Erro ao atualizar veículo ${id}:`, error);
+    throw error;
+  }
 }
 
 export async function listarVeiculosComStatus(dataSaida: string): Promise<(Veiculo & {
   status: { disponivel: boolean; indisponivelAte?: string };
 })[]> {
   try {
-    const [veiculos, agendamentosSnap] = await Promise.all([
+    const [veiculos, agendamentos] = await Promise.all([
       listarVeiculos(),
-      getDocs(colAgendamentos),
+      listarAgendamentos(),
     ]);
 
-    const agendamentos: Agendamento[] = agendamentosSnap.docs.map((doc) => ({
-      id: doc.id,
-      veiculoId: doc.data().veiculoId,
-      saida: doc.data().saida,
-      chegada: doc.data().chegada,
-    }));
-
     return veiculos.map((veiculo) => {
-      const agendamentoAtivo = agendamentos.find((ag) => (
-        ag.veiculoId === veiculo.id &&
-        new Date(dataSaida) >= new Date(ag.saida) &&
-        new Date(dataSaida) <= new Date(ag.chegada)
-      ));
+      const agendamentoAtivo = agendamentos.find(
+        (ag) =>
+          ag.veiculoId === veiculo.id &&
+          new Date(dataSaida) >= new Date(ag.saida) &&
+          new Date(dataSaida) <= new Date(ag.chegada) &&
+          !ag.concluido
+      );
 
       return {
         ...veiculo,
-        status: agendamentoAtivo ? {
-          disponivel: false,
-          indisponivelAte: agendamentoAtivo.chegada,
-        } : {
-          disponivel: true,
-        },
+        status: agendamentoAtivo
+          ? {
+              disponivel: false,
+              indisponivelAte: agendamentoAtivo.chegada,
+            }
+          : {
+              disponivel: true,
+            },
       };
     });
   } catch (error) {

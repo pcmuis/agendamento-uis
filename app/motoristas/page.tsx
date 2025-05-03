@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ProtectedRoute from '../components/ProtectedRoute';
+import SidebarMenu from '../components/SidebarMenu'; // Importando o SidebarMenu
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/app/lib/firebase';
 
@@ -121,173 +122,176 @@ export default function MotoristasPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-900 mb-6 sm:mb-8">
-            Gerenciamento de Motoristas Autorizados
-          </h1>
+      <div className="min-h-screen flex bg-green-50">
+        <SidebarMenu /> {/* Adicionando o SidebarMenu */}
+        <main className="flex-1 ml-64 p-4 sm:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-900 mb-6 sm:mb-8">
+              Gerenciamento de Motoristas Autorizados
+            </h1>
 
-          {erro && (
-            <div className="bg-red-100 text-red-800 p-4 rounded-lg mb-6 shadow-sm text-sm sm:text-base flex justify-between items-center">
-              {erro}
-              <button
-                onClick={() => setErro('')}
-                className="text-red-800 hover:text-red-900"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
-          <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl shadow-lg border border-green-200 mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl font-semibold text-green-800 mb-4 sm:mb-6">
-              {editandoId ? 'Editar Motorista' : 'Novo Motorista'}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div>
-                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">Nome Completo</label>
-                <input
-                  type="text"
-                  value={dadosForm.nome}
-                  onChange={(e) => setDadosForm({ ...dadosForm, nome: e.target.value })}
-                  className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
-                  required
-                  placeholder="Digite o nome completo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">Matrícula</label>
-                <input
-                  type="text"
-                  value={dadosForm.matricula}
-                  onChange={(e) => setDadosForm({ ...dadosForm, matricula: e.target.value })}
-                  className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
-                  required
-                  placeholder="Digite a matrícula"
-                />
-              </div>
-              <div>
-                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">Setor</label>
-                <input
-                  type="text"
-                  value={dadosForm.setor}
-                  onChange={(e) => setDadosForm({ ...dadosForm, setor: e.target.value })}
-                  className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
-                  required
-                  placeholder="Digite o setor"
-                />
-              </div>
-              <div>
-                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">Cargo</label>
-                <input
-                  type="text"
-                  value={dadosForm.cargo}
-                  onChange={(e) => setDadosForm({ ...dadosForm, cargo: e.target.value })}
-                  className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
-                  required
-                  placeholder="Digite o cargo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">Telefone</label>
-                <input
-                  type="tel"
-                  value={dadosForm.telefone}
-                  onChange={(e) => setDadosForm({ ...dadosForm, telefone: formatarTelefone(e.target.value) })}
-                  className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
-                  required
-                  placeholder="(XX) 9XXXX-XXXX"
-                />
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4 mt-6">
-              <button
-                onClick={handleSubmit}
-                className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base font-medium"
-              >
-                {editandoId ? 'Atualizar Motorista' : 'Cadastrar Motorista'}
-              </button>
-              {editandoId && (
+            {erro && (
+              <div className="bg-red-100 text-red-800 p-4 rounded-lg mb-6 shadow-sm text-sm sm:text-base flex justify-between items-center">
+                {erro}
                 <button
-                  onClick={() => {
-                    setDadosForm({ nome: '', matricula: '', setor: '', cargo: '', telefone: '' });
-                    setEditandoId(null);
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors duration-200 text-sm sm:text-base font-medium"
+                  onClick={() => setErro('')}
+                  className="text-red-800 hover:text-red-900"
                 >
-                  Cancelar
+                  ✕
                 </button>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
 
-          <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl shadow-lg border border-green-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-green-800">Lista de Motoristas</h2>
-              <input
-                type="text"
-                placeholder="Pesquisar motoristas..."
-                value={termoPesquisa}
-                onChange={(e) => setTermoPesquisa(e.target.value)}
-                className="w-full sm:w-64 p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
-              />
+            <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl shadow-lg border border-green-200 mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold text-green-800 mb-4 sm:mb-6">
+                {editandoId ? 'Editar Motorista' : 'Novo Motorista'}
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                  <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">Nome Completo</label>
+                  <input
+                    type="text"
+                    value={dadosForm.nome}
+                    onChange={(e) => setDadosForm({ ...dadosForm, nome: e.target.value })}
+                    className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
+                    required
+                    placeholder="Digite o nome completo"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">Matrícula</label>
+                  <input
+                    type="text"
+                    value={dadosForm.matricula}
+                    onChange={(e) => setDadosForm({ ...dadosForm, matricula: e.target.value })}
+                    className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
+                    required
+                    placeholder="Digite a matrícula"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">Setor</label>
+                  <input
+                    type="text"
+                    value={dadosForm.setor}
+                    onChange={(e) => setDadosForm({ ...dadosForm, setor: e.target.value })}
+                    className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
+                    required
+                    placeholder="Digite o setor"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">Cargo</label>
+                  <input
+                    type="text"
+                    value={dadosForm.cargo}
+                    onChange={(e) => setDadosForm({ ...dadosForm, cargo: e.target.value })}
+                    className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
+                    required
+                    placeholder="Digite o cargo"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm sm:text-base font-medium text-green-700 mb-2">Telefone</label>
+                  <input
+                    type="tel"
+                    value={dadosForm.telefone}
+                    onChange={(e) => setDadosForm({ ...dadosForm, telefone: formatarTelefone(e.target.value) })}
+                    className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
+                    required
+                    placeholder="(XX) 9XXXX-XXXX"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                <button
+                  onClick={handleSubmit}
+                  className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base font-medium"
+                >
+                  {editandoId ? 'Atualizar Motorista' : 'Cadastrar Motorista'}
+                </button>
+                {editandoId && (
+                  <button
+                    onClick={() => {
+                      setDadosForm({ nome: '', matricula: '', setor: '', cargo: '', telefone: '' });
+                      setEditandoId(null);
+                    }}
+                    className="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors duration-200 text-sm sm:text-base font-medium"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-green-100">
-                    <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Nome</th>
-                    <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Matrícula</th>
-                    <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Setor</th>
-                    <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Cargo</th>
-                    <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Telefone</th>
-                    <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {carregando ? (
-                    <tr>
-                      <td colSpan={6} className="p-3 sm:p-4 text-sm sm:text-base text-gray-500 text-center">
-                        Carregando motoristas...
-                      </td>
+
+            <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl shadow-lg border border-green-200">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-4">
+                <h2 className="text-lg sm:text-xl font-semibold text-green-800">Lista de Motoristas</h2>
+                <input
+                  type="text"
+                  placeholder="Pesquisar motoristas..."
+                  value={termoPesquisa}
+                  onChange={(e) => setTermoPesquisa(e.target.value)}
+                  className="w-full sm:w-64 p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 text-sm sm:text-base bg-white placeholder-gray-500 transition-all"
+                />
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="bg-green-100">
+                      <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Nome</th>
+                      <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Matrícula</th>
+                      <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Setor</th>
+                      <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Cargo</th>
+                      <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Telefone</th>
+                      <th className="p-3 sm:p-4 text-left text-sm sm:text-base font-semibold text-green-800">Ações</th>
                     </tr>
-                  ) : motoristasFiltrados.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-3 sm:p-4 text-sm sm:text-base text-gray-500 text-center">
-                        Nenhum motorista encontrado.
-                      </td>
-                    </tr>
-                  ) : (
-                    motoristasFiltrados.map((motorista) => (
-                      <tr key={motorista.id} className="border-t border-green-200 hover:bg-green-50">
-                        <td className="p-3 sm:p-4 text-sm sm:text-base text-gray-900">{motorista.nome}</td>
-                        <td className="p-3 sm:p-4 text-sm sm:text-base text-gray-900">{motorista.matricula}</td>
-                        <td className="p-3 sm:p-4 text-sm sm:text-base text-gray-900">{motorista.setor}</td>
-                        <td className="p-3 sm:p-4 text-sm sm:text-base text-gray-900">{motorista.cargo}</td>
-                        <td className="p-3 sm:p-4 text-sm sm:text-base text-gray-900">{motorista.telefone}</td>
-                        <td className="p-3 sm:p-4 text-sm sm:text-base">
-                          <button
-                            onClick={() => handleEditar(motorista)}
-                            className="text-blue-600 hover:text-blue-800 mr-3 sm:mr-4"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => handleExcluir(motorista.id!)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            Excluir
-                          </button>
+                  </thead>
+                  <tbody>
+                    {carregando ? (
+                      <tr>
+                        <td colSpan={6} className="p-3 sm:p-4 text-sm sm:text-base text-gray-500 text-center">
+                          Carregando motoristas...
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : motoristasFiltrados.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-3 sm:p-4 text-sm sm:text-base text-gray-500 text-center">
+                          Nenhum motorista encontrado.
+                        </td>
+                      </tr>
+                    ) : (
+                      motoristasFiltrados.map((motorista) => (
+                        <tr key={motorista.id} className="border-t border-green-200 hover:bg-green-50">
+                          <td className="p-3 sm:p-4 text-sm sm:text-base text-gray-900">{motorista.nome}</td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base text-gray-900">{motorista.matricula}</td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base text-gray-900">{motorista.setor}</td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base text-gray-900">{motorista.cargo}</td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base text-gray-900">{motorista.telefone}</td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base">
+                            <button
+                              onClick={() => handleEditar(motorista)}
+                              className="text-blue-600 hover:text-blue-800 mr-3 sm:mr-4"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleExcluir(motorista.id!)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              Excluir
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </ProtectedRoute>
   );
 }

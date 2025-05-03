@@ -5,6 +5,8 @@ import { listarVeiculos, criarVeiculo, removerVeiculo, atualizarVeiculo, Veiculo
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/app/lib/firebase';
 import ProtectedRoute from '../components/ProtectedRoute';
+import SidebarMenu from '../components/SidebarMenu';
+import { FiEdit2, FiTrash2, FiPlus, FiCheck, FiX, FiArrowUp, FiArrowDown } from 'react-icons/fi';
 
 export default function VeiculosPage() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
@@ -65,14 +67,14 @@ export default function VeiculosPage() {
         await criarVeiculo({
           placa: dadosForm.placa.toUpperCase(),
           modelo: dadosForm.modelo,
-          disponivel: dadosForm.disponivel
+          disponivel: dadosForm.disponivel,
         });
         alert('Veículo adicionado com sucesso!');
       } else if (formAberto === 'editar' && dadosForm.id) {
         await atualizarVeiculo(dadosForm.id, {
           placa: dadosForm.placa.toUpperCase(),
           modelo: dadosForm.modelo,
-          disponivel: dadosForm.disponivel
+          disponivel: dadosForm.disponivel,
         });
         alert('Veículo atualizado com sucesso!');
       }
@@ -94,7 +96,7 @@ export default function VeiculosPage() {
       });
     } catch (error) {
       console.error('Erro ao verificar agendamentos:', error);
-      return true; // Por segurança, assume que tem agendamento se houver erro
+      return true;
     }
   };
 
@@ -145,13 +147,13 @@ export default function VeiculosPage() {
     const veiculosOrdenados = [...veiculos].sort((a, b) => {
       const valorA = a[coluna] ?? '';
       const valorB = b[coluna] ?? '';
-      
+
       if (coluna === 'disponivel') {
         return novaDirecao === 'asc'
           ? Number(valorA) - Number(valorB)
           : Number(valorB) - Number(valorA);
       }
-      
+
       return novaDirecao === 'asc'
         ? String(valorA).localeCompare(String(valorB))
         : String(valorB).localeCompare(String(valorA));
@@ -162,159 +164,198 @@ export default function VeiculosPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-screen bg-green-50 p-4 sm:p-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-semibold text-green-800 mb-6 sm:mb-8">
-            Gerenciamento de Veículos
-          </h1>
-
-          <button
-            onClick={() => {
-              setFormAberto('novo');
-              setDadosForm({ placa: '', modelo: '', disponivel: true });
-              setErro('');
-            }}
-            className="mb-6 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-200 text-sm sm:text-base"
-          >
-            Novo Veículo
-          </button>
+      <div className="min-h-screen bg-gray-50 flex">
+        <SidebarMenu />
+        
+        <main className="flex-1 ml-64 p-6">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-800">Gerenciamento de Veículos</h1>
+            <button
+              onClick={() => {
+                setFormAberto('novo');
+                setDadosForm({ placa: '', modelo: '', disponivel: true });
+                setErro('');
+              }}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              <FiPlus className="text-lg" />
+              Novo Veículo
+            </button>
+          </div>
 
           {formAberto && (
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-green-200 mb-6">
-              <h2 className="text-lg font-medium text-green-700 mb-4">
-                {formAberto === 'novo' ? 'Novo Veículo' : 'Editar Veículo'}
-              </h2>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {formAberto === 'novo' ? 'Adicionar Veículo' : 'Editar Veículo'}
+                </h2>
+                <button 
+                  onClick={() => setFormAberto(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <FiX className="text-xl" />
+                </button>
+              </div>
+              
               {erro && (
-                <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
-                  {erro}
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
+                  <p className="font-bold">Erro</p>
+                  <p>{erro}</p>
                 </div>
               )}
-              <div className="space-y-4">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-green-700 mb-1">Placa</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Placa *</label>
                   <input
                     type="text"
                     placeholder="Ex: ABC1234"
-                    className={`w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm ${
-                      dadosForm.placa ? 'text-gray-900' : 'text-gray-500'
-                    }`}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     value={dadosForm.placa}
                     onChange={(e) => setDadosForm({ ...dadosForm, placa: e.target.value.toUpperCase() })}
                     required
                   />
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-green-700 mb-1">Modelo</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Modelo *</label>
                   <input
                     type="text"
                     placeholder="Ex: Fiat Uno"
-                    className={`w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm ${
-                      dadosForm.modelo ? 'text-gray-900' : 'text-gray-500'
-                    }`}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     value={dadosForm.modelo}
                     onChange={(e) => setDadosForm({ ...dadosForm, modelo: e.target.value })}
                     required
                   />
                 </div>
+                
                 <div className="flex items-center">
                   <input
                     type="checkbox"
                     id="disponivel"
                     checked={dadosForm.disponivel}
                     onChange={(e) => setDadosForm({ ...dadosForm, disponivel: e.target.checked })}
-                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-green-300 rounded"
+                    className="h-5 w-5 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="disponivel" className="ml-2 block text-sm font-medium text-green-700">
+                  <label htmlFor="disponivel" className="ml-2 block text-sm font-medium text-gray-700">
                     Disponível
                   </label>
                 </div>
-                <div className="flex space-x-4">
-                  <button
-                    onClick={handleSubmit}
-                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-200 text-sm"
-                  >
-                    {formAberto === 'novo' ? 'Criar' : 'Salvar'}
-                  </button>
-                  <button
-                    onClick={() => setFormAberto(null)}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors duration-200 text-sm"
-                  >
-                    Cancelar
-                  </button>
-                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setFormAberto(null)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  <FiCheck className="text-lg" />
+                  {formAberto === 'novo' ? 'Cadastrar' : 'Salvar'}
+                </button>
               </div>
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow-md border border-green-200 overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="bg-green-100">
-                  {[
-                    { nome: 'Placa', coluna: 'placa' as keyof Veiculo },
-                    { nome: 'Modelo', coluna: 'modelo' as keyof Veiculo },
-                    { nome: 'Disponível', coluna: 'disponivel' as keyof Veiculo },
-                    { nome: 'Ações', coluna: '' },
-                  ].map((col) => (
-                    <th
-                      key={col.coluna || col.nome}
-                      onClick={() => col.coluna !== '' && handleOrdenar(col.coluna as keyof Veiculo)}
-                      className={`p-3 text-left text-sm font-medium text-green-700 cursor-pointer ${
-                        col.coluna ? 'hover:bg-green-200' : ''
-                      }`}
-                    >
-                      {col.nome}
-                      {ordenacao.coluna === col.coluna &&
-                        (ordenacao.direcao === 'asc' ? ' ▲' : ' ▼')}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {carregando ? (
-                  <tr>
-                    <td colSpan={4} className="p-3 text-sm text-gray-500 text-center">
-                      Carregando veículos...
-                    </td>
-                  </tr>
-                ) : veiculos.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="p-3 text-sm text-gray-500 text-center">
-                      Nenhum veículo cadastrado.
-                    </td>
-                  </tr>
-                ) : (
-                  veiculos.map((v) => (
-                    <tr key={v.id} className="border-t border-green-200">
-                      <td className="p-3 text-sm text-gray-900">{v.placa}</td>
-                      <td className="p-3 text-sm text-gray-900">{v.modelo}</td>
-                      <td className="p-3 text-sm text-gray-900">
-                        {v.disponivel ? 'Sim' : 'Não'}
-                      </td>
-                      <td className="p-3 text-sm">
-                        <button
-                          onClick={() => handleEditar(v)}
-                          className="text-green-600 hover:text-green-800 mr-2"
+          {erro && !formAberto && (
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
+              <p className="font-bold">Erro</p>
+              <p>{erro}</p>
+            </div>
+          )}
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {carregando ? (
+              <div className="flex justify-center items-center p-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+              </div>
+            ) : veiculos.length === 0 ? (
+              <div className="text-center p-12">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Nenhum veículo cadastrado</h3>
+                <p className="mt-1 text-gray-500">Clique em "Novo Veículo" para começar</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {[
+                        { nome: 'Placa', coluna: 'placa' as keyof Veiculo },
+                        { nome: 'Modelo', coluna: 'modelo' as keyof Veiculo },
+                        { nome: 'Disponível', coluna: 'disponivel' as keyof Veiculo },
+                        { nome: 'Ações', coluna: '' },
+                      ].map((col) => (
+                        <th
+                          key={col.coluna || col.nome}
+                          onClick={() => col.coluna && handleOrdenar(col.coluna as keyof Veiculo)}
+                          className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                            col.coluna ? 'cursor-pointer hover:bg-gray-100' : ''
+                          }`}
                         >
-                          Editar
-                        </button>
-                        {v.id && (
-                          <button
-                            onClick={() => handleExcluir(v.id ?? '', v.modelo)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            Excluir
-                          </button>
-                        )}
-                      </td>
+                          <div className="flex items-center">
+                            {col.nome}
+                            {ordenacao.coluna === col.coluna && (
+                              <span className="ml-1">
+                                {ordenacao.direcao === 'asc' ? <FiArrowUp size={14} /> : <FiArrowDown size={14} />}
+                              </span>
+                            )}
+                          </div>
+                        </th>
+                      ))}
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {veiculos.map((v) => (
+                      <tr key={v.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {v.placa}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {v.modelo}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            v.disponivel ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {v.disponivel ? 'Disponível' : 'Indisponível'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex space-x-3">
+                            <button
+                              onClick={() => handleEditar(v)}
+                              className="text-green-600 hover:text-green-900"
+                              title="Editar"
+                            >
+                              <FiEdit2 size={18} />
+                            </button>
+                            {v.id && (
+                              <button
+                                onClick={() => handleExcluir(v.id ?? '', v.modelo)}
+                                className="text-red-600 hover:text-red-900"
+                                title="Excluir"
+                              >
+                                <FiTrash2 size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </ProtectedRoute>
   );
 }
