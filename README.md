@@ -30,7 +30,7 @@ Certifique-se de ter as seguintes ferramentas instaladas:
 1. Clone o repositório:
 
    ```bash
-   git clone https://github.com/seu-usuario/agendamento-uis.git
+   git clone https://github.com/pmcuis/agendamento-uis.git
    cd agendamento-uis
    ```
 
