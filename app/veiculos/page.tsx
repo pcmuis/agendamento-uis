@@ -15,6 +15,7 @@ export default function VeiculosPage() {
     placa: '',
     modelo: '',
     disponivel: true,
+    status: null, // Add the status property with an initial value
   });
   const [erro, setErro] = useState<string>('');
   const [carregando, setCarregando] = useState<boolean>(true);
@@ -68,6 +69,7 @@ export default function VeiculosPage() {
           placa: dadosForm.placa.toUpperCase(),
           modelo: dadosForm.modelo,
           disponivel: dadosForm.disponivel,
+          status: dadosForm.status, // Include the status property
         });
         alert('Veículo adicionado com sucesso!');
       } else if (formAberto === 'editar' && dadosForm.id) {
@@ -78,9 +80,8 @@ export default function VeiculosPage() {
         });
         alert('Veículo atualizado com sucesso!');
       }
-      await carregarVeiculos();
+      setDadosForm({ placa: '', modelo: '', disponivel: true, status: null }); // Include the status property
       setFormAberto(null);
-      setDadosForm({ placa: '', modelo: '', disponivel: true });
     } catch (error) {
       setErro(`Erro ao ${formAberto === 'novo' ? 'adicionar' : 'atualizar'} veículo. Tente novamente.`);
       console.error('Erro ao submeter:', error);
@@ -135,6 +136,7 @@ export default function VeiculosPage() {
       placa: veiculo.placa,
       modelo: veiculo.modelo,
       disponivel: veiculo.disponivel,
+      status: veiculo.status, // Include the status property
     });
     setFormAberto('editar');
     setErro('');
@@ -173,7 +175,7 @@ export default function VeiculosPage() {
             <button
               onClick={() => {
                 setFormAberto('novo');
-                setDadosForm({ placa: '', modelo: '', disponivel: true });
+                setDadosForm({ placa: '', modelo: '', disponivel: true, status: null });
                 setErro('');
               }}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
