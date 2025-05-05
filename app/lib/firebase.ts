@@ -1,17 +1,15 @@
 // lib/firebase.ts
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAKcPt2kRxwuNaWBnMg-l6VOrZsOIg_MBE",
-  authDomain: "uis-agendamento.firebaseapp.com",
-  projectId: "uis-agendamento",
-  storageBucket: "uis-agendamento.firebasestorage.app",
-  messagingSenderId: "823959630726",
-  appId: "1:823959630726:web:50011817b422f505133207"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID",
 };
 
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
-export const auth = getAuth(app);
