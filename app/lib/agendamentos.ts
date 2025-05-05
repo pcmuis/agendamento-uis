@@ -1,5 +1,5 @@
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db } from "@/app/lib/firebase";
 
 export interface Agendamento {
   id: string;
