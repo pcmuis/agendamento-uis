@@ -7,9 +7,9 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-green-50 flex flex-col">
       {/* Main Content */}
       <main className="flex-1 p-4 sm:p-6">
-        <header className="flex justify-between items-center mb-6 sm:mb-8">
+        <header className="flex justify-center items-center mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-            Sistema de Agendamento - UIS
+            Agendamento Veicular - UIS
           </h1>
         </header>
 
