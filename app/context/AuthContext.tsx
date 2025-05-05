@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { auth } from '@/app/lib/firebase'; // Corrected import path
 
 type AuthContextType = {
   user: string | null;
