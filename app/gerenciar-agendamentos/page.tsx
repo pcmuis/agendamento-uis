@@ -4,50 +4,23 @@ import { useState, useEffect, useCallback } from 'react';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SidebarMenu from '../components/SidebarMenu';
 import { listarVeiculosComStatus } from '@/app/lib/veiculos';
+import { Agendamento, listarAgendamentos } from '@/app/lib/agendamentos';
 import { criarAgendamento, atualizarAgendamento, excluirAgendamento } from '@/app/lib/agendamentos';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/app/lib/firebase';
-import * as XLSX from 'xlsx';
 import { format, isValid } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import * as XLSX from 'xlsx';
 
-interface Agendamento {
-  id: string;
-  saida: string;
-  chegada: string;
-  veiculoId: string;
-  motorista: string;
-  matricula: string;
-  telefone: string;
-  destino: string;
-  observacoes: string;
-  concluido: boolean;
-}
-
-interface Veiculo {
+export interface Veiculo {
   id: string;
   modelo: string;
   placa: string;
   status?: {
     disponivel: boolean;
-    indisponivelAte?: string;
   };
-}
-
-export async function listarAgendamentos(): Promise<Agendamento[]> {
-  try {
-    const snapshot = await getDocs(collection(db, 'agendamentos'));
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Agendamento[];
-  } catch (error) {
-    console.error('Erro ao listar agendamentos:', error);
-    throw new Error('Falha ao buscar agendamentos no Firebase');
-  }
 }
 
 export default function GerenciarAgendamentosPage() {
