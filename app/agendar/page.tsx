@@ -55,6 +55,12 @@ export default function AgendarPage() {
   const [agendamentosDia, setAgendamentosDia] = useState<any[]>([]);
   const [etapaAtual, setEtapaAtual] = useState<'veiculo' | 'detalhes'>('veiculo');
 
+  // Estados para data e hora separadas
+  const [saidaData, setSaidaData] = useState<string>('');
+  const [saidaHora, setSaidaHora] = useState<string>('');
+  const [chegadaData, setChegadaData] = useState<string>('');
+  const [chegadaHora, setChegadaHora] = useState<string>('');
+
   useEffect(() => {
     const carregarMotoristas = async () => {
       try {
@@ -74,15 +80,18 @@ export default function AgendarPage() {
 
   useEffect(() => {
     const carregarVeiculos = async () => {
-      if (!dados.saida) {
+      if (!saidaData || !saidaHora) {
         setVeiculos([]);
         setDados((prev) => ({ ...prev, veiculoId: '' }));
         return;
       }
 
+      const saidaCompleta = `${saidaData}T${saidaHora}`;
+      setDados((prev) => ({ ...prev, saida: saidaCompleta }));
+
       setCarregando(true);
       try {
-        const lista = await listarVeiculosComStatus(dados.saida);
+        const lista = await listarVeiculosComStatus(saidaCompleta);
         setVeiculos(lista);
       } catch (error) {
         setErro('Erro ao carregar veículos. Tente novamente.');
@@ -92,7 +101,17 @@ export default function AgendarPage() {
       }
     };
     carregarVeiculos();
-  }, [dados.saida]);
+  }, [saidaData, saidaHora]);
+
+  // Novo useEffect para atualizar dados.chegada
+  useEffect(() => {
+    if (chegadaData && chegadaHora) {
+      const chegadaCompleta = `${chegadaData}T${chegadaHora}`;
+      setDados((prev) => ({ ...prev, chegada: chegadaCompleta }));
+    } else {
+      setDados((prev) => ({ ...prev, chegada: '' }));
+    }
+  }, [chegadaData, chegadaHora]);
 
   useEffect(() => {
     const carregarDatasMaximas = async () => {
@@ -149,7 +168,7 @@ export default function AgendarPage() {
         const agendamentos = snapshot.docs
           .map((doc) => ({
             id: doc.id,
-            ...(doc.data() as { veiculoId: string; saida: string; chegada: string }),
+            ...(doc.data() as { veiculoId: string; saida: string; chegada: string; destino: string }),
           }))
           .filter(
             (ag) =>
@@ -204,8 +223,10 @@ export default function AgendarPage() {
 
   const validarAgendamento = async () => {
     const camposObrigatorios = [
-      { nome: 'Data e Hora de Saída', valor: dados.saida },
-      { nome: 'Data e Hora de Chegada', valor: dados.chegada },
+      { nome: 'Data de Saída', valor: saidaData },
+      { nome: 'Hora de Saída', valor: saidaHora },
+      { nome: 'Data de Chegada', valor: chegadaData },
+      { nome: 'Hora de Chegada', valor: chegadaHora },
       { nome: 'Veículo', valor: dados.veiculoId },
       { nome: 'Motorista', valor: dados.motorista },
       { nome: 'Matrícula', valor: dados.matricula },
@@ -222,13 +243,13 @@ export default function AgendarPage() {
     }
 
     const agora = new Date();
-    const saida = new Date(dados.saida);
-    const chegada = new Date(dados.chegada);
+    const saida = new Date(`${saidaData}T${saidaHora}`);
+    const chegada = new Date(`${chegadaData}T${chegadaHora}`);
     if (saida < agora) {
-      return 'A data de saída não pode ser anterior à data atual.';
+      return 'A data e hora de saída não podem ser anteriores ao momento atual.';
     }
     if (chegada <= saida) {
-      return 'A data de chegada deve ser posterior à data de saída.';
+      return 'A data e hora de chegada devem ser posteriores à data e hora de saída.';
     }
 
     const telefoneLimpo = dados.telefone.replace(/\D/g, '');
@@ -279,6 +300,15 @@ export default function AgendarPage() {
     setErro('');
     setCarregando(true);
     try {
+      // Garantir que saida e chegada estão atualizados
+      const saidaCompleta = `${saidaData}T${saidaHora}`;
+      const chegadaCompleta = `${chegadaData}T${chegadaHora}`;
+      setDados((prev) => ({
+        ...prev,
+        saida: saidaCompleta,
+        chegada: chegadaCompleta,
+      }));
+
       const mensagemErro = await validarAgendamento();
       if (mensagemErro) {
         setErro(mensagemErro);
@@ -286,7 +316,15 @@ export default function AgendarPage() {
         return;
       }
 
-      await criarAgendamento(dados);
+      // Usar os valores atualizados para criar o agendamento
+      const agendamentoDados = {
+        ...dados,
+        saida: saidaCompleta,
+        chegada: chegadaCompleta,
+      };
+      await criarAgendamento(agendamentoDados);
+
+      // Atualizar dadosComprovante com valores válidos
       setDadosComprovante({
         motorista: dados.motorista,
         matricula: dados.matricula,
@@ -295,9 +333,10 @@ export default function AgendarPage() {
         observacoes: dados.observacoes,
         veiculo: veiculos.find((v) => v.id === dados.veiculoId)?.modelo || 'Desconhecido',
         placa: veiculos.find((v) => v.id === dados.veiculoId)?.placa || 'Não informada',
-        saida: dados.saida,
-        chegada: dados.chegada,
+        saida: saidaCompleta,
+        chegada: chegadaCompleta,
       });
+
       setMostrarComprovante(true);
       setDados({
         saida: '',
@@ -309,6 +348,10 @@ export default function AgendarPage() {
         destino: '',
         observacoes: '',
       });
+      setSaidaData('');
+      setSaidaHora('');
+      setChegadaData('');
+      setChegadaHora('');
     } catch (error) {
       setErro('Erro ao criar agendamento. Tente novamente.');
       console.error('Erro ao criar agendamento:', error);
@@ -322,8 +365,12 @@ export default function AgendarPage() {
     : veiculos;
 
   const getMinDate = () => {
-    if (typeof window === 'undefined') return '';
-    return new Date().toISOString().slice(0, 16);
+    return new Date().toISOString().slice(0, 10);
+  };
+
+  const getMinTime = () => {
+    const agora = new Date();
+    return `${agora.getHours().toString().padStart(2, '0')}:${agora.getMinutes().toString().padStart(2, '0')}`;
   };
 
   return (
@@ -374,33 +421,66 @@ export default function AgendarPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Data e Hora de Saída</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Data de Saída *</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <FiCalendar className="text-gray-400" />
                       </div>
                       <input
-                        type="datetime-local"
-                        value={dados.saida}
-                        onChange={(e) => setDados({ ...dados, saida: e.target.value })}
+                        type="date"
+                        value={saidaData}
+                        onChange={(e) => setSaidaData(e.target.value)}
                         min={getMinDate()}
                         className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-black"
                         required
                       />
                     </div>
                   </div>
-                  
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Data e Hora de Chegada</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Hora de Saída *</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <FiClock className="text-gray-400" />
                       </div>
                       <input
-                        type="datetime-local"
-                        value={dados.chegada}
-                        onChange={(e) => setDados({ ...dados, chegada: e.target.value })}
-                        min={dados.saida || getMinDate()}
+                        type="time"
+                        value={saidaHora}
+                        onChange={(e) => setSaidaHora(e.target.value)}
+                        min={saidaData === getMinDate() ? getMinTime() : undefined}
+                        step="60"
+                        className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-black"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Data de Chegada *</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FiCalendar className="text-gray-400" />
+                      </div>
+                      <input
+                        type="date"
+                        value={chegadaData}
+                        onChange={(e) => setChegadaData(e.target.value)}
+                        min={saidaData || getMinDate()}
+                        className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-black"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Hora de Chegada *</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FiClock className="text-gray-400" />
+                      </div>
+                      <input
+                        type="time"
+                        value={chegadaHora}
+                        onChange={(e) => setChegadaHora(e.target.value)}
+                        min={chegadaData === saidaData ? saidaHora : undefined}
+                        step="60"
                         className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-black"
                         required
                       />
@@ -413,9 +493,9 @@ export default function AgendarPage() {
                     type="checkbox"
                     checked={mostrarDisponiveis}
                     onChange={() => setMostrarDisponiveis(!mostrarDisponiveis)}
-                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-black-300 rounded"
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                   />
-                  <label className="ml-2 text-sm font-medium text-black-700">
+                  <label className="ml-2 text-sm font-medium text-gray-700">
                     Mostrar apenas veículos disponíveis
                   </label>
                 </div>
@@ -665,7 +745,9 @@ export default function AgendarPage() {
                           <p className="font-medium text-gray-900">{agendamento.placa}</p>
                           <p className="text-xs text-gray-600">
                             {new Date(agendamento.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} -{' '}
-                            {new Date(agendamento.chegada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            {agendamento.chegada
+                              ? new Date(agendamento.chegada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                              : 'Data inválida'}
                           </p>
                         </div>
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">

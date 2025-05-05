@@ -34,24 +34,27 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
 
   const instrucoes = {
     retirada: [
-      'Apresente-se no PCM no horário agendado com documento de identificação',
+      'Retire a chave do veículo na balança da UIS',
+      'Não será permitido retirar veículo diferente do agendado',
       'Verifique o estado do veículo (combustível, pneus, lataria) antes de sair',
       'Confira os documentos do veículo e equipamentos obrigatórios'
     ],
     utilizacao: [
+      'Utilize o diário de bordo, registrando inicio e fim de uso',
       'Mantenha o veículo limpo e em boas condições',
       'Respeite os limites de velocidade e leis de trânsito',
       'Use o veículo apenas para o destino informado no agendamento'
     ],
     devolucao: [
-      'Devolva o veículo no local e horário combinados',
+      'Devolva o veículo no pátio da UIS1 no horário agendado e deixe a chave na balança',
+      'Registre o fim do uso no diário de bordo',
       'Certifique-se de que o tanque está com o mesmo nível de combustível',
       'Informe qualquer ocorrência ou dano ao responsável'
     ],
     emergencia: [
-      'Em caso de acidente: acione o seguro e registre um BO',
-      'Problemas mecânicos: entre em contato com o PCM imediatamente',
-      'Emergências médicas: acione os serviços de emergência (192/193)'
+      'Em caso de acidente: acione o serviço de emergência (192/193) e notifique imediatamente o gestor da frota',
+      'Problemas mecânicos: entre em contato com o gestor da frota imediatamente',
+      'Emergências médicas: acione os serviços de emergência (192/193) e comunique a UIS.',
     ]
   };
 
