@@ -15,7 +15,6 @@ export default function VeiculosPage() {
     placa: '',
     modelo: '',
     disponivel: true,
-    status: null, // Add the status property with an initial value
   });
   const [erro, setErro] = useState<string>('');
   const [carregando, setCarregando] = useState<boolean>(true);
@@ -69,7 +68,6 @@ export default function VeiculosPage() {
           placa: dadosForm.placa.toUpperCase(),
           modelo: dadosForm.modelo,
           disponivel: dadosForm.disponivel,
-          status: dadosForm.status, // Include the status property
         });
         alert('Veículo adicionado com sucesso!');
       } else if (formAberto === 'editar' && dadosForm.id) {
@@ -80,8 +78,9 @@ export default function VeiculosPage() {
         });
         alert('Veículo atualizado com sucesso!');
       }
-      setDadosForm({ placa: '', modelo: '', disponivel: true, status: null }); // Include the status property
+      setDadosForm({ placa: '', modelo: '', disponivel: true });
       setFormAberto(null);
+      await carregarVeiculos();
     } catch (error) {
       setErro(`Erro ao ${formAberto === 'novo' ? 'adicionar' : 'atualizar'} veículo. Tente novamente.`);
       console.error('Erro ao submeter:', error);
@@ -136,7 +135,6 @@ export default function VeiculosPage() {
       placa: veiculo.placa,
       modelo: veiculo.modelo,
       disponivel: veiculo.disponivel,
-      status: veiculo.status, // Include the status property
     });
     setFormAberto('editar');
     setErro('');
@@ -175,7 +173,7 @@ export default function VeiculosPage() {
             <button
               onClick={() => {
                 setFormAberto('novo');
-                setDadosForm({ placa: '', modelo: '', disponivel: true, status: null });
+                setDadosForm({ placa: '', modelo: '', disponivel: true });
                 setErro('');
               }}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
@@ -281,7 +279,9 @@ export default function VeiculosPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
                 <h3 className="mt-2 text-lg font-medium text-gray-900">Nenhum veículo cadastrado</h3>
-                <p className="mt-1 text-gray-500">Clique em "Novo Veículo" para começar</p>
+                <p className="mt-1 text-gray-500">Clique Совета
+
+System: em "Novo Veículo" para começar</p>
               </div>
             ) : (
               <div className="overflow-x-auto">

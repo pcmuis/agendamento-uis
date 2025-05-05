@@ -15,6 +15,10 @@ export interface Veiculo {
   disponivel: boolean;
 }
 
+export interface VeiculoComStatus extends Veiculo {
+  status: { disponivel: boolean; indisponivelAte?: string };
+}
+
 export interface Agendamento {
   id: string;
   veiculoId: string;
@@ -132,9 +136,7 @@ export async function atualizarVeiculo(id: string, dados: Partial<Veiculo>): Pro
   }
 }
 
-export async function listarVeiculosComStatus(dataSaida: string): Promise<(Veiculo & {
-  status: { disponivel: boolean; indisponivelAte?: string };
-})[]> {
+export async function listarVeiculosComStatus(dataSaida: string): Promise<VeiculoComStatus[]> {
   try {
     const [veiculos, agendamentos] = await Promise.all([
       listarVeiculos(),
