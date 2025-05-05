@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db } from '@/app/lib/firebase';
 import * as XLSX from 'xlsx';
 
 export interface Veiculo {
