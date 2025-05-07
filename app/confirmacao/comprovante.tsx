@@ -46,13 +46,13 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
       'Use o veículo apenas para o destino informado no agendamento'
     ],
     devolucao: [
-      'Devolva o veículo no pátio da UIS1 no horário agendado e deixe a chave na balança',
+      'Devolva o veículo no pátio da UIS no horário agendado e deixe a chave na balança',
       'Registre o fim do uso no diário de bordo',
       'Certifique-se de que o tanque está com o mesmo nível de combustível',
-      'Informe qualquer ocorrência ou dano ao responsável'
+      'Informe qualquer ocorrência ou dano ao responsável ou PCM 45 99127-6269'
     ],
     emergencia: [
-      'Em caso de acidente: acione o serviço de emergência (192/193) e notifique imediatamente o gestor da frota',
+      'Em caso de acidente: acione o serviço de emergência (192/193) e notifique imediatamente o gestor da frota (45 99856-2656)',
       'Problemas mecânicos: entre em contato com o gestor da frota imediatamente',
       'Emergências médicas: acione os serviços de emergência (192/193) e comunique a UIS.',
     ]
@@ -109,7 +109,7 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
 
   const handleCompartilharWhatsApp = () => {
     const texto = encodeURIComponent(generateComprovanteText());
-    const numeroWhatsApp = '+5545998394505'; // Número editável
+    const numeroWhatsApp = '+5545991276269'; // Número editável, celular do PCM
     const url = `https://wa.me/${numeroWhatsApp}?text=${texto}`;
     window.open(url, '_blank');
   };
