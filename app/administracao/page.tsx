@@ -164,9 +164,9 @@ export default function AdministracaoPage() {
     const data = [];
     const hoje = new Date();
 
-    for (let i = period - 1; i >= 0; i--) {
+    for (let i = 0; i < period; i++) {
       const date = new Date(hoje);
-      date.setDate(hoje.getDate() - i);
+      date.setDate(hoje.getDate() + i);
 
       const agendamentosDia = agendamentos.filter((ag) => {
         const agDate = new Date(ag.saida);
@@ -387,7 +387,7 @@ export default function AdministracaoPage() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                         />
                       </svg>
                       <p className="mt-2 text-gray-600 text-sm">Nenhum agendamento para hoje</p>
