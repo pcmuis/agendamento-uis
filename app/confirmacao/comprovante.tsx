@@ -109,7 +109,7 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
 
   const handleCompartilharWhatsApp = () => {
     const texto = encodeURIComponent(generateComprovanteText());
-    const numeroWhatsApp = '+5545991276269'; // Número editável, celular do PCM
+    const numeroWhatsApp = '+5545998562656'; // Número editável, celular do PCM
     const url = `https://wa.me/${numeroWhatsApp}?text=${texto}`;
     window.open(url, '_blank');
   };

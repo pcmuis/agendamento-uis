@@ -54,6 +54,7 @@ export default function AdministracaoPage() {
   const [rankingPeriod, setRankingPeriod] = useState<'semanal' | 'mensal'>('semanal');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<'resumo' | 'calendario'>('resumo');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -92,9 +93,7 @@ export default function AdministracaoPage() {
     );
   });
 
-  // New logic for available vehicles today
   const getVeiculosDisponiveisHoje = () => {
-    // Get all agendamentos for today (non-concluded)
     const agendamentosHojeNaoConcluidos = agendamentos.filter((ag) => {
       const saida = new Date(ag.saida);
       return (
@@ -105,12 +104,8 @@ export default function AdministracaoPage() {
       );
     });
 
-    // Get IDs of vehicles that are booked today
     const veiculosOcupados = new Set(agendamentosHojeNaoConcluidos.map((ag) => ag.veiculoId));
-
-    // Count vehicles that are NOT in the booked set
     const veiculosDisponiveis = veiculos.filter((v) => !veiculosOcupados.has(v.id));
-
     return veiculosDisponiveis.length;
   };
 
@@ -122,7 +117,6 @@ export default function AdministracaoPage() {
     resource: ag,
   }));
 
-  // Calculate ranking
   const getRanking = () => {
     const startDate = rankingPeriod === 'semanal' ? subWeeks(new Date(), 1) : subMonths(new Date(), 1);
     const filteredAgendamentos = agendamentos.filter(
@@ -165,7 +159,6 @@ export default function AdministracaoPage() {
     setSelectedDate(start);
   };
 
-  // Dados para o gráfico
   const getChartData = () => {
     const period = rankingPeriod === 'semanal' ? 7 : 30;
     const data = [];
@@ -198,27 +191,66 @@ export default function AdministracaoPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 flex">
+      <div className="min-h-screen bg-gray-50 flex flex-col sm:flex-row">
+        {/* Botão de Menu para Mobile */}
+        <button
+          className="sm:hidden fixed top-4 left-4 z-50 p-2 bg-green-600 text-white rounded-lg"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          aria-label="Toggle sidebar"
+        >
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16m-7 6h7"
+            />
+          </svg>
+        </button>
+
         {/* Sidebar */}
-        <SidebarMenu />
+        <div
+          className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } sm:translate-x-0 sm:static sm:inset-auto transition-transform duration-300 ease-in-out`}
+        >
+          <SidebarMenu />
+        </div>
+
+        {/* Overlay para Mobile */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-30 sm:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+        )}
 
         {/* Main Content */}
-        <main className="flex-1 ml-64 p-6">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800">Painel de Administração</h1>
-            <div className="flex space-x-2">
+        <main className="flex-1 p-4 sm:p-6 sm:ml-64">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Painel de Administração</h1>
+            <div className="flex space-x-2 mt-4 sm:mt-0">
               <button
                 onClick={() => setActiveTab('resumo')}
-                className={`px-4 py-2 rounded-lg font-medium ${
-                  activeTab === 'resumo' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                  activeTab === 'resumo'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
                 Resumo
               </button>
               <button
                 onClick={() => setActiveTab('calendario')}
-                className={`px-4 py-2 rounded-lg font-medium ${
-                  activeTab === 'calendario' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                  activeTab === 'calendario'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
                 Calendário
@@ -227,7 +259,10 @@ export default function AdministracaoPage() {
           </div>
 
           {error && (
-            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded" role="alert">
+            <div
+              className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded"
+              role="alert"
+            >
               <p className="font-bold">Erro</p>
               <p>{error}</p>
             </div>
@@ -240,14 +275,14 @@ export default function AdministracaoPage() {
           ) : activeTab === 'resumo' ? (
             <div className="space-y-6">
               {/* Cards de Resumo */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-gray-500 font-medium">Agendamentos Hoje</h3>
+                    <h3 className="text-sm sm:text-base text-gray-500 font-medium">Agendamentos Hoje</h3>
                     <div className="bg-green-100 p-2 rounded-full">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-6 w-6 text-green-600"
+                        className="h-5 w-5 sm:h-6 sm:w-6 text-green-600"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -261,17 +296,19 @@ export default function AdministracaoPage() {
                       </svg>
                     </div>
                   </div>
-                  <p className="text-3xl font-bold mt-4 text-gray-800">{agendamentosHoje.length}</p>
-                  <p className="text-sm text-gray-500 mt-2">Agendamentos para hoje</p>
+                  <p className="text-2xl sm:text-3xl font-bold mt-4 text-gray-800">
+                    {agendamentosHoje.length}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-2">Agendamentos para hoje</p>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-gray-500 font-medium">Veículos Disponíveis</h3>
+                    <h3 className="text-sm sm:text-base text-gray-500 font-medium">Veículos Disponíveis</h3>
                     <div className="bg-blue-100 p-2 rounded-full">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-6 w-6 text-blue-600"
+                        className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -285,17 +322,19 @@ export default function AdministracaoPage() {
                       </svg>
                     </div>
                   </div>
-                  <p className="text-3xl font-bold mt-4 text-gray-800">{getVeiculosDisponiveisHoje()}</p>
-                  <p className="text-sm text-gray-500 mt-2">De {veiculos.length} veículos</p>
+                  <p className="text-2xl sm:text-3xl font-bold mt-4 text-gray-800">
+                    {getVeiculosDisponiveisHoje()}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-2">De {veiculos.length} veículos</p>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-gray-500 font-medium">Motoristas Ativos</h3>
+                    <h3 className="text-sm sm:text-base text-gray-500 font-medium">Motoristas Ativos</h3>
                     <div className="bg-purple-100 p-2 rounded-full">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-6 w-6 text-purple-600"
+                        className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -309,17 +348,17 @@ export default function AdministracaoPage() {
                       </svg>
                     </div>
                   </div>
-                  <p className="text-3xl font-bold mt-4 text-gray-800">
+                  <p className="text-2xl sm:text-3xl font-bold mt-4 text-gray-800">
                     {[...new Set(agendamentos.filter((ag) => ag.motorista).map((ag) => ag.motorista))].length}
                   </p>
-                  <p className="text-sm text-gray-500 mt-2">Motoristas diferentes</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-2">Motoristas diferentes</p>
                 </div>
               </div>
 
               {/* Gráfico e Agendamentos */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Agendamentos por Dia</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Agendamentos por Dia</h2>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={chartData}>
@@ -333,13 +372,13 @@ export default function AdministracaoPage() {
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Agendamentos de Hoje</h2>
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Agendamentos de Hoje</h2>
                   {agendamentosHoje.length === 0 ? (
                     <div className="text-center py-8">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-12 w-12 mx-auto text-gray-400"
+                        className="h-10 w-10 mx-auto text-gray-400"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -351,23 +390,33 @@ export default function AdministracaoPage() {
                           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                         />
                       </svg>
-                      <p className="mt-2 text-gray-600">Nenhum agendamento para hoje</p>
+                      <p className="mt-2 text-gray-600 text-sm">Nenhum agendamento para hoje</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {agendamentosHoje.map((ag) => (
-                        <div key={ag.id} className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
-                          <div className="flex justify-between items-start">
+                        <div
+                          key={ag.id}
+                          className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex flex-col sm:flex-row justify-between items-start">
                             <div>
-                              <h3 className="font-medium text-gray-900">{ag.destino}</h3>
-                              <p className="text-sm text-gray-600">{getVeiculoNome(ag.veiculoId)}</p>
+                              <h3 className="font-medium text-gray-900 text-sm sm:text-base">{ag.destino}</h3>
+                              <p className="text-xs sm:text-sm text-gray-600">{getVeiculoNome(ag.veiculoId)}</p>
                             </div>
-                            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                              {new Date(ag.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} -{' '}
-                              {new Date(ag.chegada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mt-2 sm:mt-0">
+                              {new Date(ag.saida).toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}{' '}
+                              -{' '}
+                              {new Date(ag.chegada).toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
                             </span>
                           </div>
-                          <div className="mt-2 flex items-center text-sm text-gray-500">
+                          <div className="mt-2 flex items-center text-xs sm:text-sm text-gray-500">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               className="h-4 w-4 mr-1"
@@ -392,16 +441,16 @@ export default function AdministracaoPage() {
               </div>
 
               {/* Ranking */}
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-800">
+              <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800">
                     Ranking de {rankingType === 'motoristas' ? 'Motoristas' : 'Veículos'}
                   </h2>
-                  <div className="flex space-x-3">
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
                     <select
                       value={rankingType}
                       onChange={(e) => setRankingType(e.target.value as 'motoristas' | 'veiculos')}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 w-full"
                       aria-label="Tipo de ranking"
                     >
                       <option value="motoristas">Motoristas</option>
@@ -410,7 +459,7 @@ export default function AdministracaoPage() {
                     <select
                       value={rankingPeriod}
                       onChange={(e) => setRankingPeriod(e.target.value as 'semanal' | 'mensal')}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 w-full"
                       aria-label="Período do ranking"
                     >
                       <option value="semanal">Semanal</option>
@@ -423,7 +472,7 @@ export default function AdministracaoPage() {
                   <div className="text-center py-8">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-12 w-12 mx-auto text-gray-400"
+                      className="h-10 w-10 mx-auto text-gray-400"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -435,7 +484,7 @@ export default function AdministracaoPage() {
                         d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                       />
                     </svg>
-                    <p className="mt-2 text-gray-600">Nenhum dado para o período selecionado</p>
+                    <p className="mt-2 text-gray-600 text-sm">Nenhum dado para o período selecionado</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -444,25 +493,25 @@ export default function AdministracaoPage() {
                         <tr>
                           <th
                             scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                           >
                             Posição
                           </th>
                           <th
                             scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                           >
                             {rankingType === 'motoristas' ? 'Motorista' : 'Veículo'}
                           </th>
                           <th
                             scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                           >
                             Agendamentos
                           </th>
                           <th
                             scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                           >
                             Progresso
                           </th>
@@ -471,13 +520,17 @@ export default function AdministracaoPage() {
                       <tbody className="bg-white divide-y divide-gray-200">
                         {ranking.map((item, index) => (
                           <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                               {index + 1}º
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.count}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {item.name}
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {item.count}
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                              <div className="w-24 sm:w-32 bg-gray-200 rounded-full h-2.5">
                                 <div
                                   className="bg-green-600 h-2.5 rounded-full"
                                   style={{ width: `${(item.count / ranking[0].count) * 100}%` }}
@@ -493,22 +546,22 @@ export default function AdministracaoPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Calendário de Agendamentos</h2>
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Calendário de Agendamentos</h2>
               <style jsx global>{`
                 .rbc-calendar {
                   font-family: 'Inter', sans-serif;
-                  background-color: #FFFFFF;
+                  background-color: #ffffff;
                   border-radius: 12px;
-                  padding: 16px;
+                  padding: 12px;
                 }
                 .rbc-event {
-                  background-color: #10B981 !important;
+                  background-color: #10b981 !important;
                   border: none !important;
                   border-radius: 6px !important;
                   padding: 4px 8px !important;
-                  color: #FFFFFF !important;
-                  font-size: 12px !important;
+                  color: #ffffff !important;
+                  font-size: 10px !important;
                   font-weight: 500 !important;
                   cursor: pointer;
                   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -517,11 +570,11 @@ export default function AdministracaoPage() {
                   background-color: #059669 !important;
                 }
                 .rbc-today {
-                  background-color: #ECFDF5 !important;
+                  background-color: #ecfdf5 !important;
                 }
                 .rbc-toolbar {
-                  margin-bottom: 16px !important;
-                  font-size: 14px !important;
+                  margin-bottom: 12px !important;
+                  font-size: 12px !important;
                   display: flex;
                   justify-content: space-between;
                   align-items: center;
@@ -529,14 +582,15 @@ export default function AdministracaoPage() {
                   gap: 8px;
                 }
                 .rbc-toolbar button {
-                  background-color: #10B981 !important;
-                  color: #FFFFFF !important;
+                  background-color: #10b981 !important;
+                  color: #ffffff !important;
                   border: none !important;
-                  border-radius: 8px !important;
-                  padding: 8px 16px !important;
+                  border-radius: 6px !important;
+                  padding: 6px 12px !important;
                   cursor: pointer !important;
                   transition: all 0.2s !important;
                   font-weight: 500;
+                  font-size: 12px;
                   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
                 }
                 .rbc-toolbar button:hover {
@@ -547,34 +601,35 @@ export default function AdministracaoPage() {
                   transform: translateY(0);
                 }
                 .rbc-toolbar-label {
-                  color: #1F2937 !important;
+                  color: #1f2937 !important;
                   font-weight: 600 !important;
-                  font-size: 16px !important;
+                  font-size: 14px !important;
                 }
                 .rbc-month-view,
                 .rbc-week-view,
                 .rbc-day-view,
                 .rbc-agenda-view {
-                  border-radius: 12px !important;
+                  border-radius: 8px !important;
                   overflow: hidden !important;
                   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
                 }
                 .rbc-header {
-                  background-color: #F9FAFB !important;
-                  color: #1F2937 !important;
-                  padding: 12px !important;
+                  background-color: #f9fafb !important;
+                  color: #1f2937 !important;
+                  padding: 8px !important;
                   font-weight: 600 !important;
-                  border-bottom: 1px solid #E5E7EB !important;
-                }
-                .rbc-time-slot {
-                  background-color: #FFFFFF !important;
-                  border-top: 1px solid #E5E7EB !important;
-                  color: #1F2937 !important;
+                  border-bottom: 1px solid #e5e7eb !important;
                   font-size: 12px !important;
                 }
+                .rbc-time-slot {
+                  background-color: #ffffff !important;
+                  border-top: 1px solid #e5e7eb !important;
+                  color: #1f2937 !important;
+                  font-size: 10px !important;
+                }
                 .rbc-time-header {
-                  background-color: #F9FAFB !important;
-                  color: #1F2937 !important;
+                  background-color: #f9fafb !important;
+                  color: #1f2937 !important;
                 }
                 .rbc-agenda-view table {
                   width: 100%;
@@ -583,39 +638,86 @@ export default function AdministracaoPage() {
                 .rbc-agenda-view .rbc-agenda-date-cell,
                 .rbc-agenda-view .rbc-agenda-time-cell,
                 .rbc-agenda-view .rbc-agenda-event-cell {
-                  padding: 12px !important;
-                  color: #1F2937 !important;
-                  font-size: 14px !important;
-                  border-bottom: 1px solid #E5E7EB !important;
+                  padding: 8px !important;
+                  color: #1f2937 !important;
+                  font-size: 12px !important;
+                  border-bottom: 1px solid #e5e7eb !important;
                 }
                 .rbc-agenda-view .rbc-agenda-event-cell {
                   font-weight: 500 !important;
                 }
                 .rbc-agenda-empty {
-                  color: #1F2937 !important;
-                  padding: 24px !important;
+                  color: #1f2937 !important;
+                  padding: 16px !important;
                   text-align: center;
-                  font-size: 14px !important;
+                  font-size: 12px !important;
                 }
                 .rbc-day-bg {
-                  background-color: #FFFFFF !important;
-                  border: 1px solid #E5E7EB !important;
+                  background-color: #ffffff !important;
+                  border: 1px solid #e5e7eb !important;
                 }
                 .rbc-off-range-bg {
-                  background-color: #F9FAFB !important;
+                  background-color: #f9fafb !important;
                 }
                 .rbc-day-bg.rbc-today {
-                  background-color: #ECFDF5 !important;
+                  background-color: #ecfdf5 !important;
                 }
                 .rbc-btn-group button {
-                  margin-right: 8px !important;
+                  margin-right: 6px !important;
                 }
                 .rbc-row-segment {
                   padding: 4px !important;
                 }
                 .rbc-show-more {
-                  color: #3B82F6 !important;
+                  color: #3b82f6 !important;
                   font-weight: 500 !important;
+                  font-size: 12px !important;
+                }
+                @media (max-width: 640px) {
+                  .rbc-calendar {
+                    padding: 8px;
+                  }
+                  .rbc-event {
+                    font-size: 8px !important;
+                    padding: 2px 4px !important;
+                  }
+                  .rbc-toolbar {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 12px;
+                  }
+                  .rbc-toolbar-label {
+                    font-size: 12px !important;
+                  }
+                  .rbc-btn-group {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                  }
+                  .rbc-btn-group button {
+                    padding: 6px 10px !important;
+                    font-size: 10px !important;
+                  }
+                  .rbc-header {
+                    font-size: 10px !important;
+                    padding: 6px !important;
+                  }
+                  .rbc-time-slot {
+                    font-size: 8px !important;
+                  }
+                  .rbc-agenda-view .rbc-agenda-date-cell,
+                  .rbc-agenda-view .rbc-agenda-time-cell,
+                  .rbc-agenda-view .rbc-agenda-event-cell {
+                    font-size: 10px !important;
+                    padding: 6px !important;
+                  }
+                  .rbc-agenda-empty {
+                    font-size: 10px !important;
+                    padding: 12px !important;
+                  }
+                  .rbc-show-more {
+                    font-size: 10px !important;
+                  }
                 }
               `}</style>
               <Calendar
@@ -623,8 +725,8 @@ export default function AdministracaoPage() {
                 events={eventosCalendario}
                 startAccessor="start"
                 endAccessor="end"
-                style={{ height: 700 }}
-                defaultView="month"
+                style={{ height: 'auto', minHeight: 500 }}
+                defaultView="agenda"
                 views={['month', 'week', 'day', 'agenda']}
                 onSelectSlot={handleSelectSlot}
                 selectable
@@ -644,7 +746,7 @@ export default function AdministracaoPage() {
                   noEventsInRange: 'Nenhum agendamento neste período.',
                   showMore: (total) => `+${total} mais`,
                 }}
-                className="text-sm"
+                className="text-xs sm:text-sm"
                 popup
                 eventPropGetter={(event) => ({
                   style: {
