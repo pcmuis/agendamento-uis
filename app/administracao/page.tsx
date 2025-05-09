@@ -358,7 +358,7 @@ export default function AdministracaoPage() {
               {/* Gráfico e Agendamentos */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Agendamentos por Dia</h2>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Agendamentos da semana</h2>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={chartData}>
