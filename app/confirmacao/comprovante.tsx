@@ -52,7 +52,7 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
       'Informe qualquer ocorrência ou dano ao responsável ou PCM 45 99127-6269'
     ],
     emergencia: [
-      'Em caso de acidente: acione o serviço de emergência (192/193) e notifique imediatamente o gestor da frota (45 99856-2656)',
+      'Em caso de acidente: acione o serviço de emergência (192/193) e notifique imediatamente o gestor da frota (45 99856-2656 - Willian Cristian)',
       'Problemas mecânicos: entre em contato com o gestor da frota imediatamente',
       'Emergências médicas: acione os serviços de emergência (192/193) e comunique a UIS.',
     ]
