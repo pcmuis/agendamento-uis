@@ -18,7 +18,7 @@ type AgendamentoDados = {
   telefone: string;
   destino: string;
   observacoes: string;
-  codigo?: string; // Novo campo para o código do comprovante
+  codigo?: string;
 };
 
 type Motorista = {
