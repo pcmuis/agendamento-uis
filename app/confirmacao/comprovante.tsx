@@ -64,7 +64,7 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
 
   const generateComprovanteText = () => {
     return `📋 *COMPROVANTE DE AGENDAMENTO* 📋\n\n` +
-      `🚗 *Código do comprovante*: ${agendamento.codigo}\n` +
+      `*Código do comprovante*: ${agendamento.codigo}\n` +
       `🚗 *Veículo*: ${agendamento.veiculo} (${agendamento.placa || 'Placa não informada'})\n` +
       `👤 *Motorista*: ${agendamento.motorista}\n` +
       `🆔 *Matrícula*: ${agendamento.matricula}\n` +
@@ -73,12 +73,7 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
       `⏰ Saída: ${new Date(agendamento.saida).toLocaleString('pt-BR')}\n` +
       `⏰ Retorno: ${new Date(agendamento.chegada).toLocaleString('pt-BR')}\n\n` +
       `📍 *Destino*: ${agendamento.destino}\n` +
-      `${agendamento.observacoes ? `📝 *Observações*: ${agendamento.observacoes}\n\n` : '\n'}` +
-      `ℹ️ *INSTRUÇÕES IMPORTANTES*\n\n` +
-      `🔑 *Retirada do Veículo*\n${instrucoes.retirada.map(i => `• ${i}`).join('\n')}\n\n` +
-      `🚦 *Durante a Utilização*\n${instrucoes.utilizacao.map(i => `• ${i}`).join('\n')}\n\n` +
-      `🔙 *Devolução*\n${instrucoes.devolucao.map(i => `• ${i}`).join('\n')}\n\n` +
-      `🆘 *Emergências*\n${instrucoes.emergencia.map(i => `• ${i}`).join('\n')}`;
+      `${agendamento.observacoes ? `📝 *Observações*: ${agendamento.observacoes}\n\n` : '\n'}`
   };
 
   const handleCopiar = async () => {
