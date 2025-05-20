@@ -28,7 +28,8 @@ export default function GerenciarAgendamentosPage() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [formAberto, setFormAberto] = useState<'novo' | 'editar' | null>(null);
-  const [dadosForm, setDadosForm] = useState<Omit<Agendamento, 'id'> & { id?: string }>({
+  const [dadosForm, setDadosForm] = useState<Omit<Agendamento, 'id'> & { id?: string; codigo?: string }>({
+    codigo: '',
     saida: '',
     chegada: '',
     veiculoId: '',
@@ -71,6 +72,7 @@ export default function GerenciarAgendamentosPage() {
   const validarAgendamento = async (dados: typeof dadosForm, isEdicao: boolean = false) => {
     // Validação de campos obrigatórios
     const camposObrigatorios = [
+      { nome: 'Código do Agendamento', valor: dados.codigo },
       { nome: 'Data e Hora de Saída', valor: dados.saida },
       { nome: 'Data e Hora de Chegada', valor: dados.chegada },
       { nome: 'Veículo', valor: dados.veiculoId },
@@ -171,6 +173,7 @@ export default function GerenciarAgendamentosPage() {
 
   const resetarFormulario = () => {
     setDadosForm({
+      codigo: '',
       saida: '',
       chegada: '',
       veiculoId: '',
@@ -218,6 +221,7 @@ export default function GerenciarAgendamentosPage() {
   const handleEditar = (agendamento: Agendamento) => {
     setFormAberto('editar');
     setDadosForm({
+      codigo: agendamento.codigo,
       id: agendamento.id,
       saida: agendamento.saida,
       chegada: agendamento.chegada,
@@ -303,6 +307,7 @@ export default function GerenciarAgendamentosPage() {
 
   const exportarParaExcel = () => {
     const dados = agendamentosFiltrados.map((ag) => ({
+      'Código': ag.codigo || '',
       'Data Saída': isValid(new Date(ag.saida))
         ? format(new Date(ag.saida), 'dd/MM/yyyy HH:mm',)
         : 'Data Inválida',
@@ -452,8 +457,18 @@ export default function GerenciarAgendamentosPage() {
                     </div>
                   </div>
                 )}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Código do Agendamento*</label>
+                  <input
+                    type="text"
+                    value={dadosForm.codigo}
+                    onChange={(e) => setDadosForm({ ...dadosForm, codigo: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    placeholder="Código único do agendamento"
+                    required
+                  />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data e Hora de Saída*</label>
                     <input
@@ -616,6 +631,7 @@ export default function GerenciarAgendamentosPage() {
                     <thead className="bg-gray-50">
                       <tr>
                         {[
+                          { nome: 'Código', coluna: 'codigo' as keyof Agendamento },
                           { nome: 'Status', coluna: undefined },
                           { nome: 'Saída', coluna: 'saida' as keyof Agendamento },
                           { nome: 'Chegada', coluna: 'chegada' as keyof Agendamento },
@@ -650,6 +666,9 @@ export default function GerenciarAgendamentosPage() {
                         const status = getStatusAgendamento(ag);
                         return (
                           <tr key={ag.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {ag.codigo || '-'}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(status)}`}>
                                 {status}

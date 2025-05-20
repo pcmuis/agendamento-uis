@@ -2,6 +2,7 @@ import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase
 import { db } from "@/app/lib/firebase";
 
 export interface Agendamento {
+  codigo: string | undefined;
   id: string;
   saida: string;
   chegada: string;

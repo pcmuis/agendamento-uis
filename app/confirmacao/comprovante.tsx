@@ -64,7 +64,7 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
 
   const generateComprovanteText = () => {
     return `📋 *COMPROVANTE DE AGENDAMENTO* 📋\n\n` +
-      `🚗 *Código do comprovante*: ${agendamento.codigo}\n` +
+      `*Código do comprovante*: ${agendamento.codigo}\n` +
       `🚗 *Veículo*: ${agendamento.veiculo} (${agendamento.placa || 'Placa não informada'})\n` +
       `👤 *Motorista*: ${agendamento.motorista}\n` +
       `🆔 *Matrícula*: ${agendamento.matricula}\n` +
@@ -154,17 +154,20 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
             </div>
           </div>
 
-          {/* Dados do agendamento */}
-          <div className="space-y-4">
+            {/* Dados do agendamento */}
+            <div className="space-y-4">
             <div className="flex items-start">
               <div className="flex-shrink-0 h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                <FiTruck className="text-lg" />
+              <FiTruck className="text-lg" />
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Veículo</h3>
-                <p className="text-sm font-semibold text-gray-900">
-                  {agendamento.veiculo} {agendamento.placa && `(${agendamento.placa})`}
-                </p>
+              <div className="ml-4 flex-1">
+              <h3 className="text-sm font-medium text-gray-500">Veículo</h3>
+              <p className="text-sm font-semibold text-gray-900">
+                {agendamento.veiculo} {agendamento.placa && `(${agendamento.placa})`}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                <span className="font-medium">Código do agendamento:</span> {agendamento.codigo}
+              </p>
               </div>
             </div>
 
