@@ -18,6 +18,7 @@ type AgendamentoDados = {
   telefone: string;
   destino: string;
   observacoes: string;
+  codigo?: string; // Novo campo para o código do comprovante
 };
 
 type Motorista = {
@@ -316,15 +317,19 @@ export default function AgendarPage() {
         return;
       }
 
+      // Gerar código aleatório de 5 dígitos
+      const codigo = Math.floor(10000 + Math.random() * 90000).toString();
+
       // Usar os valores atualizados para criar o agendamento
       const agendamentoDados = {
         ...dados,
         saida: saidaCompleta,
         chegada: chegadaCompleta,
+        codigo, // Adiciona o código
       };
       await criarAgendamento(agendamentoDados);
 
-      // Atualizar dadosComprovante com valores válidos
+      // Atualizar dadosComprovante com valores válidos e o código
       setDadosComprovante({
         motorista: dados.motorista,
         matricula: dados.matricula,
@@ -335,6 +340,7 @@ export default function AgendarPage() {
         placa: veiculos.find((v) => v.id === dados.veiculoId)?.placa || 'Não informada',
         saida: saidaCompleta,
         chegada: chegadaCompleta,
+        codigo, // Adiciona o código aqui também
       });
 
       setMostrarComprovante(true);
