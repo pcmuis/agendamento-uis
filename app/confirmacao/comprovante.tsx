@@ -5,6 +5,7 @@ import { FiCheckCircle, FiX, FiChevronDown, FiChevronUp, FiShare2, FiCopy, FiClo
 
 type ComprovanteProps = {
   agendamento: {
+    codigo: string;
     motorista: string;
     matricula: string;
     telefone: string;
@@ -18,9 +19,12 @@ type ComprovanteProps = {
   onClose: () => void;
 };
 
+
+
 export default function Comprovante({ agendamento, onClose }: ComprovanteProps) {
   const [mostrarInstrucoes, setMostrarInstrucoes] = useState<boolean>(false);
   const [copiado, setCopiado] = useState<boolean>(false);
+  
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -60,6 +64,7 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
 
   const generateComprovanteText = () => {
     return `📋 *COMPROVANTE DE AGENDAMENTO* 📋\n\n` +
+      `🚗 *Código do comprovante*: ${agendamento.codigo}\n` +
       `🚗 *Veículo*: ${agendamento.veiculo} (${agendamento.placa || 'Placa não informada'})\n` +
       `👤 *Motorista*: ${agendamento.motorista}\n` +
       `🆔 *Matrícula*: ${agendamento.matricula}\n` +
