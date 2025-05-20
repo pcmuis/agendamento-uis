@@ -38,6 +38,7 @@ export default function GerenciarAgendamentosPage() {
     destino: '',
     observacoes: '',
     concluido: false,
+    codigo: '', // Adiciona o campo do comprovante
   });
   const [erro, setErro] = useState<string>('');
   const [ordenacao, setOrdenacao] = useState<{ coluna: keyof Agendamento; direcao: 'asc' | 'desc' }>({
@@ -180,6 +181,7 @@ export default function GerenciarAgendamentosPage() {
       destino: '',
       observacoes: '',
       concluido: false,
+      codigo: '',
     });
     setErro('');
   };
@@ -228,6 +230,7 @@ export default function GerenciarAgendamentosPage() {
       destino: agendamento.destino,
       observacoes: agendamento.observacoes,
       concluido: agendamento.concluido,
+      codigo: agendamento.codigo || '',
     });
     setErro('');
   };
@@ -316,6 +319,7 @@ export default function GerenciarAgendamentosPage() {
       'Destino': ag.destino,
       'Observações': ag.observacoes || '-',
       'Status': getStatusAgendamento(ag),
+      'Comprovante': ag.codigo || '-',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dados);
@@ -556,6 +560,17 @@ export default function GerenciarAgendamentosPage() {
                       rows={4}
                     />
                   </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Comprovante</label>
+                    <input
+                      type="text"
+                      value={dadosForm.codigo}
+                      onChange={(e) => setDadosForm({ ...dadosForm, codigo: e.target.value.trim() })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                      placeholder="Código do comprovante"
+                    />
+                  </div>
                 </div>
 
                 <div className="mt-6 flex justify-end gap-3">
@@ -617,6 +632,7 @@ export default function GerenciarAgendamentosPage() {
                       <tr>
                         {[
                           { nome: 'Status', coluna: undefined },
+                          { nome: 'Comprovante', coluna: 'codigo' as keyof Agendamento },
                           { nome: 'Saída', coluna: 'saida' as keyof Agendamento },
                           { nome: 'Chegada', coluna: 'chegada' as keyof Agendamento },
                           { nome: 'Veículo', coluna: 'veiculoId' as keyof Agendamento },
@@ -654,6 +670,9 @@ export default function GerenciarAgendamentosPage() {
                               <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(status)}`}>
                                 {status}
                               </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {ag.codigo || '-'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {formatarDataHora(ag.saida)}

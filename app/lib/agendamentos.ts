@@ -12,6 +12,7 @@ export interface Agendamento {
   destino: string;
   observacoes: string;
   concluido: boolean;
+  codigo?: string; // Número do comprovante
 }
 
 const colecao = collection(db, "agendamentos");
