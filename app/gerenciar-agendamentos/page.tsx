@@ -38,7 +38,8 @@ export default function GerenciarAgendamentosPage() {
     destino: '',
     observacoes: '',
     concluido: false,
-    codigo: '', // Adiciona o campo do comprovante
+    codigo: '',
+    nomeAgendador: '', //
   });
   const [erro, setErro] = useState<string>('');
   const [ordenacao, setOrdenacao] = useState<{ coluna: keyof Agendamento; direcao: 'asc' | 'desc' }>({
@@ -47,6 +48,7 @@ export default function GerenciarAgendamentosPage() {
   });
   const [carregando, setCarregando] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'ativos' | 'concluidos'>('ativos');
+  const [codigoFiltro, setCodigoFiltro] = useState<string>('');
 
   const carregarDados = useCallback(async () => {
     try {
@@ -108,7 +110,8 @@ export default function GerenciarAgendamentosPage() {
       return 'A data de saída deve ser anterior à data de chegada.';
     }
 
-    if (saida < new Date()) {
+    // Permitir datas passadas na edição administrativa
+    if (formAberto === 'novo' && saida < new Date()) {
       return 'A data de saída não pode ser no passado.';
     }
 
@@ -182,6 +185,7 @@ export default function GerenciarAgendamentosPage() {
       observacoes: '',
       concluido: false,
       codigo: '',
+      nomeAgendador: '',
     });
     setErro('');
   };
@@ -221,6 +225,7 @@ export default function GerenciarAgendamentosPage() {
     setFormAberto('editar');
     setDadosForm({
       id: agendamento.id,
+      nomeAgendador: agendamento.nomeAgendador || '',
       saida: agendamento.saida,
       chegada: agendamento.chegada,
       veiculoId: agendamento.veiculoId,
@@ -228,7 +233,7 @@ export default function GerenciarAgendamentosPage() {
       matricula: agendamento.matricula,
       telefone: agendamento.telefone,
       destino: agendamento.destino,
-      observacoes: agendamento.observacoes,
+      observacoes: agendamento.observacoes || '',
       concluido: agendamento.concluido,
       codigo: agendamento.codigo || '',
     });
@@ -271,9 +276,22 @@ export default function GerenciarAgendamentosPage() {
 
   const agendamentosFiltrados = agendamentos
     .filter((ag) => {
-      if (filtroStatus === 'ativos') return !ag.concluido;
-      if (filtroStatus === 'concluidos') return ag.concluido;
-      return true;
+      if (!codigoFiltro) {
+        if (filtroStatus === 'ativos') return !ag.concluido;
+        if (filtroStatus === 'concluidos') return ag.concluido;
+        return true;
+      }
+      const termo = codigoFiltro.trim().toLowerCase();
+      return (
+        (ag.codigo && ag.codigo.toLowerCase().includes(termo)) ||
+        (ag.motorista && ag.motorista.toLowerCase().includes(termo)) ||
+        (ag.nomeAgendador && ag.nomeAgendador.toLowerCase().includes(termo)) ||
+        (ag.matricula && ag.matricula.toLowerCase().includes(termo)) ||
+        (ag.telefone && ag.telefone.toLowerCase().includes(termo)) ||
+        (ag.destino && ag.destino.toLowerCase().includes(termo)) ||
+        (ag.veiculoId && getVeiculoNome(ag.veiculoId).toLowerCase().includes(termo)) ||
+        (ag.observacoes && ag.observacoes.toLowerCase().includes(termo))
+      );
     })
     .sort((a, b) => {
       const valorA = a[ordenacao.coluna] || '';
@@ -320,6 +338,7 @@ export default function GerenciarAgendamentosPage() {
       'Observações': ag.observacoes || '-',
       'Status': getStatusAgendamento(ag),
       'Comprovante': ag.codigo || '-',
+      'Nome Agendador': ag.nomeAgendador || '-',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dados);
@@ -336,6 +355,7 @@ export default function GerenciarAgendamentosPage() {
   };
 
   const formatarTelefone = (telefone: string) => {
+    if (!telefone) return '';
     const cleaned = telefone.replace(/\D/g, '');
     if (cleaned.length === 11) {
       return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
@@ -393,19 +413,6 @@ export default function GerenciarAgendamentosPage() {
                   </svg>
                   Atualizar
                 </button>
-
-                <button
-                  onClick={() => {
-                    setFormAberto('novo');
-                    resetarFormulario();
-                  }}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Novo Agendamento
-                </button>
               </div>
             </div>
 
@@ -427,169 +434,19 @@ export default function GerenciarAgendamentosPage() {
               </div>
             </div>
 
-            {/* Formulário */}
-            {formAberto && (
-              <div className="bg-white p-6 rounded-lg shadow-md border border-green-200 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    {formAberto === 'novo' ? 'Novo Agendamento' : 'Editar Agendamento'}
-                  </h2>
-                  <button
-                    onClick={() => setFormAberto(null)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {erro && (
-                  <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
-                    <div className="flex justify-between items-center">
-                      <p className="font-medium">{erro}</p>
-                      <button onClick={() => setErro('')} className="text-red-700 hover:text-red-900">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data e Hora de Saída*</label>
-                    <input
-                      type="datetime-local"
-                      value={dadosForm.saida}
-                      onChange={(e) => setDadosForm({ ...dadosForm, saida: e.target.value })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                      required
-                      min={format(new Date(), 'yyyy-MM-dd\'T\'HH:mm')}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data e Hora de Chegada*</label>
-                    <input
-                      type="datetime-local"
-                      value={dadosForm.chegada}
-                      onChange={(e) => setDadosForm({ ...dadosForm, chegada: e.target.value })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                      required
-                      min={dadosForm.saida || format(new Date(), 'yyyy-MM-dd\'T\'HH:mm')}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Veículo*</label>
-                    <select
-                      value={dadosForm.veiculoId}
-                      onChange={(e) => setDadosForm({ ...dadosForm, veiculoId: e.target.value })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                      required
-                    >
-                      <option value="">Selecione um veículo</option>
-                      {veiculos
-                        .filter(v => v.status?.disponivel)
-                        .map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.modelo} - {v.placa}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Motorista*</label>
-                    <input
-                      type="text"
-                      value={dadosForm.motorista}
-                      onChange={(e) => setDadosForm({ ...dadosForm, motorista: e.target.value.trim() })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                      placeholder="Nome completo"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Matrícula*</label>
-                    <input
-                      type="text"
-                      value={dadosForm.matricula}
-                      onChange={(e) => setDadosForm({ ...dadosForm, matricula: e.target.value.trim() })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                      placeholder="Número da matrícula"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefone*</label>
-                    <input
-                      type="tel"
-                      value={dadosForm.telefone}
-                      onChange={(e) => setDadosForm({ ...dadosForm, telefone: e.target.value })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                      placeholder="(XX) 9XXXX-XXXX"
-                      required
-                      pattern="\(\d{2}\)\s?\d{4,5}-\d{4}"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Destino*</label>
-                    <input
-                      type="text"
-                      value={dadosForm.destino}
-                      onChange={(e) => setDadosForm({ ...dadosForm, destino: e.target.value.trim() })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                      placeholder="Local de destino"
-                      required
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
-                    <textarea
-                      value={dadosForm.observacoes}
-                      onChange={(e) => setDadosForm({ ...dadosForm, observacoes: e.target.value })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                      placeholder="Observações adicionais (opcional)"
-                      rows={4}
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Comprovante</label>
-                    <input
-                      type="text"
-                      value={dadosForm.codigo}
-                      onChange={(e) => setDadosForm({ ...dadosForm, codigo: e.target.value.trim() })}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                      placeholder="Código do comprovante"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-6 flex justify-end gap-3">
-                  <button
-                    onClick={() => setFormAberto(null)}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={carregando}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-green-400 disabled:cursor-not-allowed"
-                  >
-                    {formAberto === 'novo' ? 'Criar Agendamento' : 'Salvar Alterações'}
-                  </button>
-                </div>
+            {/* Campo de pesquisa de agendamento */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-col sm:flex-row gap-4 items-center">
+              <div className="w-full sm:w-auto flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pesquisar e filtrar agendamentos</label>
+                <input
+                  type="text"
+                  value={codigoFiltro}
+                  onChange={e => setCodigoFiltro(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                  placeholder="Digite o código do comprovante, nome do motorista, matrícula ou telefone"
+                />
               </div>
-            )}
+            </div>
 
             {/* Tabela de Agendamentos */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -640,6 +497,7 @@ export default function GerenciarAgendamentosPage() {
                           { nome: 'Matrícula', coluna: 'matricula' as keyof Agendamento },
                           { nome: 'Telefone', coluna: 'telefone' as keyof Agendamento },
                           { nome: 'Destino', coluna: 'destino' as keyof Agendamento },
+                          { nome: 'Agendador', coluna: 'nomeAgendador' as keyof Agendamento }, // Adicionado aqui
                           { nome: 'Ações', coluna: undefined },
                         ].map((col) => (
                           <th
@@ -695,6 +553,9 @@ export default function GerenciarAgendamentosPage() {
                             <td className="px-6 py-4 text-sm text-gray-900">
                               {ag.destino}
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {ag.nomeAgendador || ag.motorista}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <div className="flex space-x-2">
                                 <button
@@ -738,7 +599,179 @@ export default function GerenciarAgendamentosPage() {
                   </table>
                 </div>
               )}
+              {codigoFiltro && agendamentosFiltrados.length === 0 && (
+                <div className="p-8 text-center text-blue-600 font-medium">
+                  Nenhum agendamento encontrado para o código informado.
+                </div>
+              )}
             </div>
+
+            {/* Formulário de edição/novo agendamento */}
+            {formAberto && (
+              <div className="bg-white p-6 rounded-lg shadow-md border border-green-200 mb-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  {formAberto === 'novo' ? 'Novo Agendamento' : 'Editar Agendamento'}
+                </h2>
+
+                {erro && (
+                  <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-md">
+                    {erro}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Data e Hora de Saída */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Saída</label>
+                    <input
+                      type="date"
+                      value={dadosForm.saida ? dadosForm.saida.split('T')[0] : ''}
+                      onChange={e => {
+                        const novaData = e.target.value;
+                        const hora = dadosForm.saida ? dadosForm.saida.split('T')[1]?.slice(0,5) : '';
+                        setDadosForm({
+                          ...dadosForm,
+                          saida: novaData ? `${novaData}T${hora || '00:00'}` : '',
+                        });
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Hora de Saída</label>
+                    <input
+                      type="time"
+                      value={dadosForm.saida ? dadosForm.saida.split('T')[1]?.slice(0,5) : ''}
+                      onChange={e => {
+                        const novaHora = e.target.value;
+                        const data = dadosForm.saida ? dadosForm.saida.split('T')[0] : '';
+                        setDadosForm({
+                          ...dadosForm,
+                          saida: data ? `${data}T${novaHora}` : '',
+                        });
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+                  {/* Data e Hora de Chegada */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Chegada</label>
+                    <input
+                      type="date"
+                      value={dadosForm.chegada ? dadosForm.chegada.split('T')[0] : ''}
+                      onChange={e => {
+                        const novaData = e.target.value;
+                        const hora = dadosForm.chegada ? dadosForm.chegada.split('T')[1]?.slice(0,5) : '';
+                        setDadosForm({
+                          ...dadosForm,
+                          chegada: novaData ? `${novaData}T${hora || '00:00'}` : '',
+                        });
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Hora de Chegada</label>
+                    <input
+                      type="time"
+                      value={dadosForm.chegada ? dadosForm.chegada.split('T')[1]?.slice(0,5) : ''}
+                      onChange={e => {
+                        const novaHora = e.target.value;
+                        const data = dadosForm.chegada ? dadosForm.chegada.split('T')[0] : '';
+                        setDadosForm({
+                          ...dadosForm,
+                          chegada: data ? `${data}T${novaHora}` : '',
+                        });
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Veículo</label>
+                    <select
+                      value={dadosForm.veiculoId}
+                      onChange={(e) => setDadosForm({ ...dadosForm, veiculoId: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    >
+                      <option value="">Selecione um veículo</option>
+                      {veiculos.map((veiculo) => (
+                        <option key={veiculo.id} value={veiculo.id}>
+                          {veiculo.modelo} - {veiculo.placa}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Motorista</label>
+                    <input
+                      type="text"
+                      value={dadosForm.motorista}
+                      onChange={(e) => setDadosForm({ ...dadosForm, motorista: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Matrícula</label>
+                    <input
+                      type="text"
+                      value={dadosForm.matricula}
+                      onChange={(e) => setDadosForm({ ...dadosForm, matricula: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                    <input
+                      type="text"
+                      value={dadosForm.telefone}
+                      onChange={(e) => setDadosForm({ ...dadosForm, telefone: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                      placeholder="(XX) XXXXX-XXXX"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Destino</label>
+                    <input
+                      type="text"
+                      value={dadosForm.destino}
+                      onChange={(e) => setDadosForm({ ...dadosForm, destino: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                    <textarea
+                      value={dadosForm.observacoes}
+                      onChange={(e) => setDadosForm({ ...dadosForm, observacoes: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                      rows={3}
+                      placeholder="Observações adicionais sobre o agendamento"
+                    ></textarea>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={() => setFormAberto(null)}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+                  >
+                    {formAberto === 'novo' ? 'Criar Agendamento' : 'Salvar Alterações'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>

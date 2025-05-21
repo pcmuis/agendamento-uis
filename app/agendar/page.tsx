@@ -19,6 +19,7 @@ type AgendamentoDados = {
   destino: string;
   observacoes: string;
   codigo?: string;
+  nomeAgendador?: string; // Novo campo opcional
 };
 
 type Motorista = {
@@ -61,6 +62,9 @@ export default function AgendarPage() {
   const [saidaHora, setSaidaHora] = useState<string>('');
   const [chegadaData, setChegadaData] = useState<string>('');
   const [chegadaHora, setChegadaHora] = useState<string>('');
+
+  // Novo estado para controlar se o agendamento é para o próprio motorista
+  const [agendandoParaMim, setAgendandoParaMim] = useState<boolean>(true);
 
   useEffect(() => {
     const carregarMotoristas = async () => {
@@ -294,6 +298,11 @@ export default function AgendarPage() {
       return 'O veículo selecionado não está disponível para o horário escolhido.';
     }
 
+    // Validação do nome do agendador
+    if (!agendandoParaMim && !dados.nomeAgendador) {
+      return 'Por favor, informe o nome de quem está agendando.';
+    }
+
     return '';
   };
 
@@ -326,6 +335,7 @@ export default function AgendarPage() {
         saida: saidaCompleta,
         chegada: chegadaCompleta,
         codigo, // Adiciona o código
+        nomeAgendador: agendandoParaMim ? undefined : dados.nomeAgendador,
       };
       await criarAgendamento(agendamentoDados);
 
@@ -340,7 +350,8 @@ export default function AgendarPage() {
         placa: veiculos.find((v) => v.id === dados.veiculoId)?.placa || 'Não informada',
         saida: saidaCompleta,
         chegada: chegadaCompleta,
-        codigo, // Adiciona o código aqui também
+        codigo,
+        nomeAgendador: agendandoParaMim ? undefined : dados.nomeAgendador, // Corrigido para passar o nome correto
       });
 
       setMostrarComprovante(true);
@@ -353,6 +364,7 @@ export default function AgendarPage() {
         telefone: '',
         destino: '',
         observacoes: '',
+        nomeAgendador: '',
       });
       setSaidaData('');
       setSaidaHora('');
@@ -645,6 +657,31 @@ export default function AgendarPage() {
                           placeholder="Preenchido automaticamente"
                         />
                       </div>
+                      <div className="flex items-center mt-2">
+                        <input
+                          type="checkbox"
+                          id="agendandoParaMim"
+                          checked={agendandoParaMim}
+                          onChange={() => setAgendandoParaMim(!agendandoParaMim)}
+                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="agendandoParaMim" className="ml-2 text-sm text-gray-700 select-none">
+                          Estou agendando para mim (sou o motorista)
+                        </label>
+                      </div>
+                      {!agendandoParaMim && (
+                        <div className="mt-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Nome de quem está agendando *</label>
+                          <input
+                            type="text"
+                            value={dados.nomeAgendador || ''}
+                            onChange={e => setDados({ ...dados, nomeAgendador: e.target.value })}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-black"
+                            placeholder="Digite o nome de quem está agendando"
+                            required
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div>

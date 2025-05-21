@@ -15,6 +15,7 @@ type ComprovanteProps = {
     placa?: string;
     saida: string;
     chegada: string;
+    nomeAgendador?: string; // Novo campo opcional
   };
   onClose: () => void;
 };
@@ -67,8 +68,9 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
       `*Código do comprovante*: ${agendamento.codigo}\n` +
       `🚗 *Veículo*: ${agendamento.veiculo} (${agendamento.placa || 'Placa não informada'})\n` +
       `👤 *Motorista*: ${agendamento.motorista}\n` +
-      `🆔 *Matrícula*: ${agendamento.matricula}\n` +
-      `📞 *Contato*: ${agendamento.telefone}\n\n` +
+      `🆔 *Matrícula do motorista*: ${agendamento.matricula}\n` +
+      `📞 *Contato do motorista*: ${agendamento.telefone}\n\n` +
+      `👤 *Autor do agendamento*: ${agendamento.nomeAgendador ? agendamento.nomeAgendador : agendamento.motorista}\n` +
       `📅 *Período de Uso*\n` +
       `⏰ Saída: ${new Date(agendamento.saida).toLocaleString('pt-BR')}\n` +
       `⏰ Retorno: ${new Date(agendamento.chegada).toLocaleString('pt-BR')}\n\n` +
@@ -171,6 +173,19 @@ export default function Comprovante({ agendamento, onClose }: ComprovanteProps) 
                 <h3 className="text-sm font-medium text-gray-500">Motorista</h3>
                 <p className="text-sm font-semibold text-gray-900">{agendamento.motorista}</p>
                 <p className="text-xs text-gray-500">Matrícula: {agendamento.matricula}</p>
+              </div>
+            </div>
+
+            {/* Novo bloco: Responsável pelo agendamento */}
+            <div className="flex items-start">
+              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                <FiUser className="text-lg" />
+              </div>
+              <div className="ml-4">
+                <h3 className="text-sm font-medium text-gray-500">Responsável pelo agendamento</h3>
+                <p className="text-sm font-semibold text-gray-900">
+                  {agendamento.nomeAgendador ? agendamento.nomeAgendador : agendamento.motorista}
+                </p>
               </div>
             </div>
 

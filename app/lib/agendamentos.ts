@@ -13,12 +13,18 @@ export interface Agendamento {
   observacoes: string;
   concluido: boolean;
   codigo?: string; // Número do comprovante
+  nomeAgendador?: string; // Novo campo para responsável pelo agendamento
 }
 
 const colecao = collection(db, "agendamentos");
 
 export async function criarAgendamento(dados: any) {
-  await addDoc(colecao, dados);
+  // Só inclui nomeAgendador se estiver definido e não vazio
+  const dadosParaSalvar = { ...dados };
+  if (!dadosParaSalvar.nomeAgendador) {
+    delete dadosParaSalvar.nomeAgendador;
+  }
+  await addDoc(colecao, dadosParaSalvar);
 }
 
 export async function listarAgendamentos(): Promise<Agendamento[]> {
@@ -36,7 +42,14 @@ export async function listarAgendamentos(): Promise<Agendamento[]> {
 
 export async function atualizarAgendamento(id: string, dados: any) {
   const docRef = doc(db, "agendamentos", id);
-  await updateDoc(docRef, dados);
+  // Remove campos undefined para evitar erro do Firebase
+  const dadosLimpos: any = {};
+  Object.keys(dados).forEach((key) => {
+    if (dados[key] !== undefined) {
+      dadosLimpos[key] = dados[key];
+    }
+  });
+  await updateDoc(docRef, dadosLimpos);
 }
 
 export async function excluirAgendamento(id: string) {
