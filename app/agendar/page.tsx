@@ -671,13 +671,13 @@ export default function AgendarPage() {
                       </div>
                       {!agendandoParaMim && (
                         <div className="mt-3">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Nome de quem está agendando *</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Autor do agendamento *</label>
                           <input
                             type="text"
                             value={dados.nomeAgendador || ''}
                             onChange={e => setDados({ ...dados, nomeAgendador: e.target.value })}
                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-black"
-                            placeholder="Digite o nome de quem está agendando"
+                            placeholder="Digite o seu nome."
                             required
                           />
                         </div>
