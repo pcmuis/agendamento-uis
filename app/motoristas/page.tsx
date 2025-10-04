@@ -163,9 +163,9 @@ export default function MotoristasPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex bg-gray-50">
-        <SidebarMenu />
-        <main className="flex-1 ml-64 p-6 overflow-x-hidden">
+      <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
+        <SidebarMenu className="md:min-h-screen" />
+        <main className="flex-1 p-6 overflow-x-hidden">
           <ToastContainer position="top-right" autoClose={5000} />
           
           <div className="max-w-7xl mx-auto">
