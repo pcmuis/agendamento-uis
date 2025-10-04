@@ -1,4 +1,58 @@
-export async function elementToPng(element: HTMLElement, options?: { backgroundColor?: string; pixelRatio?: number }) {
+type ExportOptions = { backgroundColor?: string; pixelRatio?: number };
+
+const cloneComputedStyles = (source: Element, target: HTMLElement) => {
+  const computed = window.getComputedStyle(source);
+  const cssText = Array.from(computed)
+    .map((property) => `${property}: ${computed.getPropertyValue(property)};`)
+    .join(' ');
+
+  target.setAttribute('style', cssText);
+
+  const sourceChildren = Array.from(source.children) as Element[];
+  const targetChildren = Array.from(target.children) as HTMLElement[];
+
+  for (let index = 0; index < sourceChildren.length; index += 1) {
+    const sourceChild = sourceChildren[index];
+    const targetChild = targetChildren[index];
+
+    if (sourceChild && targetChild) {
+      cloneComputedStyles(sourceChild, targetChild);
+    }
+  }
+};
+
+const inlineImages = async (element: HTMLElement) => {
+  const images = Array.from(element.querySelectorAll('img')) as HTMLImageElement[];
+
+  await Promise.all(
+    images.map(async (img) => {
+      if (!img.src || img.src.startsWith('data:')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(img.src, { mode: 'cors' });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (event) => reject(event);
+          reader.readAsDataURL(blob);
+        });
+
+        img.src = dataUrl;
+      } catch (error) {
+        console.warn('Não foi possível converter uma imagem para data URL ao gerar o resumo.', error);
+      }
+    }),
+  );
+};
+
+export async function elementToPng(element: HTMLElement, options?: ExportOptions) {
   const rect = element.getBoundingClientRect();
 
   const width = Math.ceil(rect.width);
@@ -9,29 +63,8 @@ export async function elementToPng(element: HTMLElement, options?: { backgroundC
   }
 
   const clone = element.cloneNode(true) as HTMLElement;
-
-  const collectCssText = () => {
-    let css = '';
-    const styleSheets = Array.from(document.styleSheets);
-
-    for (const sheet of styleSheets) {
-      try {
-        const rules = sheet.cssRules;
-        if (!rules) continue;
-
-        css += Array.from(rules)
-          .map((rule) => rule.cssText)
-          .join(' ');
-      } catch (error) {
-        console.warn('Não foi possível acessar uma folha de estilo ao gerar a imagem.', error);
-      }
-    }
-
-    return css;
-  };
-
-  const style = document.createElement('style');
-  style.textContent = collectCssText();
+  cloneComputedStyles(element, clone);
+  await inlineImages(clone);
 
   const wrapper = document.createElement('div');
   wrapper.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
@@ -40,7 +73,6 @@ export async function elementToPng(element: HTMLElement, options?: { backgroundC
   wrapper.style.backgroundColor = options?.backgroundColor ?? '#ffffff';
   wrapper.style.padding = '0';
   wrapper.style.margin = '0';
-  wrapper.appendChild(style);
   wrapper.appendChild(clone);
 
   const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
@@ -63,6 +95,7 @@ export async function elementToPng(element: HTMLElement, options?: { backgroundC
 
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = (event) => reject(event);
     img.src = url;
@@ -86,11 +119,7 @@ export async function elementToPng(element: HTMLElement, options?: { backgroundC
   return canvas.toDataURL('image/png');
 }
 
-export async function downloadElementAsPng(
-  element: HTMLElement,
-  filename: string,
-  options?: { backgroundColor?: string; pixelRatio?: number },
-) {
+export async function downloadElementAsPng(element: HTMLElement, filename: string, options?: ExportOptions) {
   const dataUrl = await elementToPng(element, options);
   const link = document.createElement('a');
   link.href = dataUrl;

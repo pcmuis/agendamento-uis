@@ -110,13 +110,16 @@ export default function ResumoDiarioPage() {
   const [dataSelecionada, setDataSelecionada] = useState<string>(hojeString);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const resumoRef = useRef<HTMLDivElement>(null);
+  const [erroDownload, setErroDownload] = useState<string | null>(null);
+  const agendadosRef = useRef<HTMLDivElement>(null);
+  const disponiveisRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const carregarDados = async () => {
       try {
         setCarregando(true);
         setErro(null);
+        setErroDownload(null);
         const [listaVeiculos, listaAgendamentos] = await Promise.all([
           listarVeiculos(),
           listarAgendamentos(),
@@ -142,9 +145,12 @@ export default function ResumoDiarioPage() {
     }
   }, [dataSelecionada]);
 
-  const veiculosComAgendamentos = useMemo(() => {
+  const { veiculosAgendados, veiculosDisponiveis } = useMemo(() => {
     if (!isValid(dataBase)) {
-      return [];
+      return {
+        veiculosAgendados: [],
+        veiculosDisponiveis: [],
+      };
     }
 
     const resumo = veiculos.map((veiculo) => {
@@ -166,15 +172,22 @@ export default function ResumoDiarioPage() {
       };
     });
 
-    const comAgendamento = resumo.filter((item) => item.agendamentos.length > 0);
-    const semAgendamento = resumo.filter((item) => item.agendamentos.length === 0);
+    const comAgendamento = resumo
+      .filter((item) => item.agendamentos.length > 0)
+      .sort((a, b) => a.veiculo.modelo.localeCompare(b.veiculo.modelo));
+    const semAgendamento = resumo
+      .filter((item) => item.agendamentos.length === 0)
+      .sort((a, b) => a.veiculo.modelo.localeCompare(b.veiculo.modelo));
 
-    return [...comAgendamento, ...semAgendamento];
+    return {
+      veiculosAgendados: comAgendamento,
+      veiculosDisponiveis: semAgendamento,
+    };
   }, [agendamentos, dataBase, veiculos]);
 
   const totais = useMemo(() => {
     const totalVeiculos = veiculos.length;
-    const totalAgendados = veiculosComAgendamentos.filter((item) => item.agendamentos.length > 0).length;
+    const totalAgendados = veiculosAgendados.length;
     const totalDisponiveis = totalVeiculos - totalAgendados;
 
     return {
@@ -182,22 +195,41 @@ export default function ResumoDiarioPage() {
       totalAgendados,
       totalDisponiveis,
     };
-  }, [veiculos.length, veiculosComAgendamentos]);
+  }, [veiculos.length, veiculosAgendados.length]);
 
-  const baixarResumo = useCallback(async () => {
-    if (!resumoRef.current) {
+  const baixarAgendados = useCallback(async () => {
+    if (!agendadosRef.current) {
       return;
     }
 
     try {
+      setErroDownload(null);
       const dataFormatada = format(dataBase, 'yyyy-MM-dd');
-      await downloadElementAsPng(resumoRef.current, `resumo-veiculos-${dataFormatada}.png`, {
+      await downloadElementAsPng(agendadosRef.current, `resumo-agendados-${dataFormatada}.png`, {
         backgroundColor: '#ffffff',
         pixelRatio: 2,
       });
     } catch (error) {
-      console.error('Erro ao gerar imagem do resumo:', error);
-      setErro('Não foi possível gerar a imagem do resumo. Tente novamente.');
+      console.error('Erro ao gerar imagem do resumo de agendados:', error);
+      setErroDownload('Não foi possível gerar a imagem de agendados. Tente novamente.');
+    }
+  }, [dataBase]);
+
+  const baixarDisponiveis = useCallback(async () => {
+    if (!disponiveisRef.current) {
+      return;
+    }
+
+    try {
+      setErroDownload(null);
+      const dataFormatada = format(dataBase, 'yyyy-MM-dd');
+      await downloadElementAsPng(disponiveisRef.current, `resumo-disponiveis-${dataFormatada}.png`, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      });
+    } catch (error) {
+      console.error('Erro ao gerar imagem do resumo de disponíveis:', error);
+      setErroDownload('Não foi possível gerar a imagem de disponíveis. Tente novamente.');
     }
   }, [dataBase]);
 
@@ -223,27 +255,50 @@ export default function ResumoDiarioPage() {
                 onChange={(event) => setDataSelecionada(event.target.value)}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500"
               />
-              <button
-                onClick={baixarResumo}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700"
-                type="button"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  onClick={baixarAgendados}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700"
+                  type="button"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                </svg>
-                Baixar imagem
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  Baixar agendados
+                </button>
+                <button
+                  onClick={baixarDisponiveis}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
+                  type="button"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  Baixar disponíveis
+                </button>
+              </div>
             </div>
           </header>
 
@@ -253,60 +308,61 @@ export default function ResumoDiarioPage() {
             </div>
           )}
 
+          {erroDownload && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700" role="alert">
+              {erroDownload}
+            </div>
+          )}
+
           {carregando ? (
             <div className="flex h-64 items-center justify-center">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-green-200 border-t-green-600" />
             </div>
           ) : (
-            <div ref={resumoRef} className="space-y-6">
-              <section className="rounded-2xl bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-800">{formatarTituloResumo(dataBase)}</h2>
-                <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-xl border border-green-100 bg-green-50 p-4">
-                    <p className="text-xs font-semibold uppercase text-green-600">Veículos cadastrados</p>
-                    <p className="mt-2 text-2xl font-bold text-green-900">{totais.totalVeiculos}</p>
-                  </div>
-                  <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
-                    <p className="text-xs font-semibold uppercase text-blue-600">Agendados no dia</p>
-                    <p className="mt-2 text-2xl font-bold text-blue-900">{totais.totalAgendados}</p>
-                  </div>
-                  <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
-                    <p className="text-xs font-semibold uppercase text-amber-600">Disponíveis</p>
-                    <p className="mt-2 text-2xl font-bold text-amber-900">{totais.totalDisponiveis}</p>
+            <div className="space-y-6">
+              <section ref={agendadosRef} className="space-y-6">
+                <div className="rounded-2xl bg-white p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-gray-800">{formatarTituloResumo(dataBase)}</h2>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-xl border border-green-100 bg-green-50 p-4">
+                      <p className="text-xs font-semibold uppercase text-green-600">Veículos cadastrados</p>
+                      <p className="mt-2 text-2xl font-bold text-green-900">{totais.totalVeiculos}</p>
+                    </div>
+                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                      <p className="text-xs font-semibold uppercase text-blue-600">Agendados no dia</p>
+                      <p className="mt-2 text-2xl font-bold text-blue-900">{totais.totalAgendados}</p>
+                    </div>
+                    <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+                      <p className="text-xs font-semibold uppercase text-amber-600">Disponíveis</p>
+                      <p className="mt-2 text-2xl font-bold text-amber-900">{totais.totalDisponiveis}</p>
+                    </div>
                   </div>
                 </div>
-              </section>
 
-              <section className="space-y-4">
-                {veiculosComAgendamentos.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-600">
-                    Nenhum veículo cadastrado.
-                  </div>
-                ) : (
-                  veiculosComAgendamentos.map(({ veiculo, agendamentos: agendamentosVeiculo, disponibilidade }) => (
-                    <div
-                      key={veiculo.id}
-                      className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
-                    >
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {veiculo.modelo} • {veiculo.placa}
-                          </h3>
-                          <p className="text-sm text-gray-500">{disponibilidade}</p>
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-gray-800">Veículos agendados</h2>
+                  {veiculosAgendados.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-600">
+                      Nenhum agendamento encontrado para o dia.
+                    </div>
+                  ) : (
+                    veiculosAgendados.map(({ veiculo, agendamentos: agendamentosVeiculo, disponibilidade }) => (
+                      <div
+                        key={veiculo.id}
+                        className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+                      >
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {veiculo.modelo} • {veiculo.placa}
+                            </h3>
+                            <p className="text-sm text-gray-500">{disponibilidade}</p>
+                          </div>
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                            {`${agendamentosVeiculo.length} agendamento${agendamentosVeiculo.length > 1 ? 's' : ''}`}
+                          </span>
                         </div>
-                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                          agendamentosVeiculo.length > 0
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-emerald-100 text-emerald-700'
-                        }`}>
-                          {agendamentosVeiculo.length > 0
-                            ? `${agendamentosVeiculo.length} agendamento${agendamentosVeiculo.length > 1 ? 's' : ''}`
-                            : 'Sem agendamentos'}
-                        </span>
-                      </div>
 
-                      {agendamentosVeiculo.length > 0 ? (
                         <ul className="mt-4 space-y-3">
                           {agendamentosVeiculo.map((agendamento) => (
                             <li
@@ -334,13 +390,33 @@ export default function ResumoDiarioPage() {
                             </li>
                           ))}
                         </ul>
-                      ) : (
-                        <p className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-700">
-                          Disponível durante todo o dia selecionado.
-                        </p>
-                      )}
-                    </div>
-                  ))
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <section ref={disponiveisRef} className="space-y-4 rounded-2xl border border-dashed border-emerald-200 bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-800">Veículos disponíveis</h2>
+                {veiculosDisponiveis.length === 0 ? (
+                  <p className="text-sm text-gray-600">Todos os veículos possuem agendamentos para o dia selecionado.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {veiculosDisponiveis.map(({ veiculo, disponibilidade }) => (
+                      <li
+                        key={veiculo.id}
+                        className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800"
+                      >
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                          <span className="font-semibold text-emerald-900">
+                            {veiculo.modelo} • {veiculo.placa}
+                          </span>
+                          <span className="text-xs font-medium uppercase tracking-wide text-emerald-700">Disponível</span>
+                        </div>
+                        <p className="text-xs text-emerald-700">{disponibilidade}</p>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </section>
             </div>
