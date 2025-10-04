@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/app/lib/firebase';
+import { getDb } from '@/app/lib/firebase';
 import * as XLSX from 'xlsx';
 
 export interface Veiculo {
@@ -117,7 +117,7 @@ export default function GerenciarAgendamentosPage() {
 
     // Validação de conflitos de agendamento
     try {
-      const colAgendamentos = collection(db, 'agendamentos');
+      const colAgendamentos = collection(getDb(), 'agendamentos');
       const agendamentosSnap = await getDocs(colAgendamentos);
       const agendamentos = agendamentosSnap.docs.map((doc) => ({
         id: doc.id,
