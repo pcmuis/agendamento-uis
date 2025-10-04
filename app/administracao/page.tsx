@@ -219,7 +219,7 @@ export default function AdministracaoPage() {
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           } sm:translate-x-0 sm:static sm:inset-auto transition-transform duration-300 ease-in-out`}
         >
-          <SidebarMenu />
+          <SidebarMenu className="md:min-h-screen" onNavigate={() => setIsSidebarOpen(false)} />
         </div>
 
         {/* Overlay para Mobile */}
@@ -231,7 +231,7 @@ export default function AdministracaoPage() {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-6 sm:ml-64">
+        <main className="flex-1 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Painel de Administração</h1>
             <div className="flex space-x-2 mt-4 sm:mt-0">
