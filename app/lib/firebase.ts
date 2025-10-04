@@ -3,13 +3,23 @@ import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
+const getEnv = (key: string) => {
+  const value = process.env[key];
+
+  if (!value) {
+    throw new Error(`Variável de ambiente ausente: ${key}`);
+  }
+
+  return value;
+};
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAKcPt2kRxwuNaWBnMg-l6VOrZsOIg_MBE",
-  authDomain: "uis-agendamento.firebaseapp.com",
-  projectId: "uis-agendamento",
-  storageBucket: "uis-agendamento.firebasestorage.app",
-  messagingSenderId: "823959630726",
-  appId: "1:823959630726:web:50011817b422f505133207"
+  apiKey: getEnv("NEXT_PUBLIC_FIREBASE_API_KEY"),
+  authDomain: getEnv("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"),
+  projectId: getEnv("NEXT_PUBLIC_FIREBASE_PROJECT_ID"),
+  storageBucket: getEnv("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: getEnv("NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"),
+  appId: getEnv("NEXT_PUBLIC_FIREBASE_APP_ID"),
 };
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);

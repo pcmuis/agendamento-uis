@@ -164,10 +164,10 @@ export default function VeiculosPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 flex">
-        <SidebarMenu />
-        
-        <main className="flex-1 ml-64 p-6">
+      <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+        <SidebarMenu className="md:min-h-screen" />
+
+        <main className="flex-1 p-6">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-gray-800">Gerenciamento de Veículos</h1>
             <button
