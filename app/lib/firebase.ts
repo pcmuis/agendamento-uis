@@ -2,14 +2,6 @@ import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
-type FirebaseConfigKeys =
-  | 'NEXT_PUBLIC_FIREBASE_API_KEY'
-  | 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'
-  | 'NEXT_PUBLIC_FIREBASE_PROJECT_ID'
-  | 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET'
-  | 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'
-  | 'NEXT_PUBLIC_FIREBASE_APP_ID';
-
 type FirebaseConfig = {
   apiKey: string;
   authDomain: string;
@@ -17,15 +9,6 @@ type FirebaseConfig = {
   storageBucket: string;
   messagingSenderId: string;
   appId: string;
-};
-
-const keyMap: Record<FirebaseConfigKeys, keyof FirebaseConfig> = {
-  NEXT_PUBLIC_FIREBASE_API_KEY: 'apiKey',
-  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: 'authDomain',
-  NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'projectId',
-  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: 'storageBucket',
-  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: 'messagingSenderId',
-  NEXT_PUBLIC_FIREBASE_APP_ID: 'appId',
 };
 
 let firebaseApp: FirebaseApp | null = null;
@@ -45,19 +28,18 @@ const initialiseApp = () => {
     throw configError;
   }
 
-  const config: Partial<FirebaseConfig> = {};
-  const missingKeys: FirebaseConfigKeys[] = [];
+  const envConfig = {
+    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  } as const;
 
-  (Object.keys(keyMap) as FirebaseConfigKeys[]).forEach((envKey) => {
-    const value = process.env[envKey];
-    if (!value) {
-      missingKeys.push(envKey);
-      return;
-    }
-
-    const configKey = keyMap[envKey];
-    config[configKey] = value;
-  });
+  const missingKeys = (Object.keys(envConfig) as Array<keyof typeof envConfig>).filter(
+    (key) => !envConfig[key],
+  );
 
   if (missingKeys.length > 0) {
     configError = new Error(
@@ -69,7 +51,16 @@ const initialiseApp = () => {
     throw configError;
   }
 
-  firebaseApp = getApps().length ? getApps()[0] : initializeApp(config as FirebaseConfig);
+  const config: FirebaseConfig = {
+    apiKey: envConfig.NEXT_PUBLIC_FIREBASE_API_KEY!,
+    authDomain: envConfig.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+    projectId: envConfig.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+    storageBucket: envConfig.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+    messagingSenderId: envConfig.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+    appId: envConfig.NEXT_PUBLIC_FIREBASE_APP_ID!,
+  };
+
+  firebaseApp = getApps().length ? getApps()[0] : initializeApp(config);
   return firebaseApp;
 };
 
