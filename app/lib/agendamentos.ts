@@ -1,5 +1,5 @@
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
-import { db } from "@/app/lib/firebase";
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getDb } from '@/app/lib/firebase';
 
 export interface Agendamento {
   id: string;
@@ -16,43 +16,41 @@ export interface Agendamento {
   nomeAgendador?: string; // Novo campo para responsável pelo agendamento
 }
 
-const colecao = collection(db, "agendamentos");
+const getAgendamentosCollection = () => collection(getDb(), 'agendamentos');
 
 export async function criarAgendamento(dados: any) {
-  // Só inclui nomeAgendador se estiver definido e não vazio
   const dadosParaSalvar = { ...dados };
   if (!dadosParaSalvar.nomeAgendador) {
     delete dadosParaSalvar.nomeAgendador;
   }
-  await addDoc(colecao, dadosParaSalvar);
+  await addDoc(getAgendamentosCollection(), dadosParaSalvar);
 }
 
 export async function listarAgendamentos(): Promise<Agendamento[]> {
   try {
-    const snapshot = await getDocs(colecao);
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
+    const snapshot = await getDocs(getAgendamentosCollection());
+    return snapshot.docs.map((registro) => ({
+      id: registro.id,
+      ...registro.data(),
     })) as Agendamento[];
   } catch (error) {
-    console.error("Erro ao listar agendamentos:", error);
-    throw new Error("Falha ao buscar agendamentos no Firebase");
+    console.error('Erro ao listar agendamentos:', error);
+    throw new Error('Falha ao buscar agendamentos no Firebase');
   }
 }
 
 export async function atualizarAgendamento(id: string, dados: any) {
-  const docRef = doc(db, "agendamentos", id);
-  // Remove campos undefined para evitar erro do Firebase
-  const dadosLimpos: any = {};
+  const docRef = doc(getDb(), 'agendamentos', id);
+  const dadosLimpos: Record<string, unknown> = {};
   Object.keys(dados).forEach((key) => {
     if (dados[key] !== undefined) {
       dadosLimpos[key] = dados[key];
     }
   });
-  await updateDoc(docRef, dadosLimpos);
+  await updateDoc(docRef, dadosLimpos as Partial<Agendamento>);
 }
 
 export async function excluirAgendamento(id: string) {
-  const docRef = doc(db, "agendamentos", id);
+  const docRef = doc(getDb(), 'agendamentos', id);
   await deleteDoc(docRef);
 }

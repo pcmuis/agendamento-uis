@@ -23,7 +23,7 @@ Certifique-se de ter as seguintes ferramentas instaladas:
 
 - Node.js (versão 16 ou superior)
 - npm, yarn, pnpm ou bun (gerenciador de pacotes)
-- Firebase configurado com as credenciais no arquivo `firebase.ts`
+- Firebase configurado com as credenciais definidas nas variáveis de ambiente
 
 ## Instalação
 
@@ -44,9 +44,10 @@ Certifique-se de ter as seguintes ferramentas instaladas:
    pnpm install
    ```
 
-3. Configure o Firebase:
+3. Configure as variáveis de ambiente:
 
-   - Atualize o arquivo `app/lib/firebase.ts` com as credenciais do seu projeto Firebase.
+   - Duplique o arquivo `.env.example` para `.env.local`.
+   - Preencha os valores com as credenciais do seu projeto Firebase.
 
 4. Inicie o servidor de desenvolvimento:
 
@@ -59,6 +60,21 @@ Certifique-se de ter as seguintes ferramentas instaladas:
    ```
 
 5. Acesse o sistema em [http://localhost:3000](http://localhost:3000).
+
+## Variáveis de Ambiente
+
+As seguintes variáveis precisam ser configuradas no arquivo `.env.local` (e na Vercel):
+
+| Variável | Valor de referência (projeto atual) |
+| --- | --- |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | `AIzaSyAKcPt2kRxwuNaWBnMg-l6VOrZsOIg_MBE` |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `uis-agendamento.firebaseapp.com` |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `uis-agendamento` |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `uis-agendamento.firebasestorage.app` |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `823959630726` |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | `1:823959630726:web:50011817b422f505133207` |
+
+> **Importante:** Os valores acima são os mesmos que estavam definidos diretamente no código (`app/lib/firebase.ts`). Substitua-os pelos dados do seu projeto Firebase conforme necessário.
 
 ## Estrutura do Projeto
 

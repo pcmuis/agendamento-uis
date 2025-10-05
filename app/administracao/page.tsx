@@ -1,19 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SidebarMenu from '../components/SidebarMenu';
 import { listarAgendamentos, listarVeiculosComStatus } from '@/app/lib/veiculos';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import type { Formats, View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, subWeeks, subMonths } from 'date-fns';
+import type { Locale } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 0 }),
+  format: (date: Date, pattern: string, options?: { locale?: Locale }) =>
+    format(date, pattern, { locale: ptBR, ...(options ?? {}) }),
+  parse: (value: string, pattern: string) => parse(value, pattern, new Date(), { locale: ptBR }),
+  startOfWeek: (date: Date) => startOfWeek(date, { weekStartsOn: 1, locale: ptBR }),
   getDay,
   locales: { 'pt-BR': ptBR },
 });
@@ -52,8 +55,9 @@ export default function AdministracaoPage() {
   const [error, setError] = useState<string | null>(null);
   const [rankingType, setRankingType] = useState<'motoristas' | 'veiculos'>('motoristas');
   const [rankingPeriod, setRankingPeriod] = useState<'semanal' | 'mensal'>('semanal');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState<'resumo' | 'calendario'>('resumo');
+  const [calendarView, setCalendarView] = useState<View>('week');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -77,10 +81,10 @@ export default function AdministracaoPage() {
     carregarDados();
   }, []);
 
-  const getVeiculoNome = (veiculoId: string) => {
+  const getVeiculoNome = useCallback((veiculoId: string) => {
     const veiculo = veiculos.find((v) => v.id === veiculoId);
     return veiculo ? `${veiculo.modelo} - ${veiculo.placa}` : 'Veículo não encontrado';
-  };
+  }, [veiculos]);
 
   const hoje = new Date();
   const agendamentosHoje = agendamentos.filter((ag) => {
@@ -109,13 +113,17 @@ export default function AdministracaoPage() {
     return veiculosDisponiveis.length;
   };
 
-  const eventosCalendario = agendamentos.map((ag) => ({
-    title: `${getVeiculoNome(ag.veiculoId)} - ${ag.destino}`,
-    start: new Date(ag.saida),
-    end: new Date(ag.chegada),
-    allDay: false,
-    resource: ag,
-  }));
+  const eventosCalendario = useMemo(
+    () =>
+      agendamentos.map((ag) => ({
+        title: `${getVeiculoNome(ag.veiculoId)} • ${ag.destino}`,
+        start: new Date(ag.saida),
+        end: new Date(ag.chegada),
+        allDay: false,
+        resource: ag,
+      })),
+    [agendamentos, getVeiculoNome],
+  );
 
   const getRanking = () => {
     const startDate = rankingPeriod === 'semanal' ? subWeeks(new Date(), 1) : subMonths(new Date(), 1);
@@ -158,6 +166,26 @@ export default function AdministracaoPage() {
   const handleSelectSlot = ({ start }: { start: Date }) => {
     setSelectedDate(start);
   };
+
+  const calendarFormats = useMemo<Formats>(
+    () => ({
+      dateFormat: 'dd/MM',
+      dayFormat: (date, culture) => localizer.format(date, 'dd/MM', culture),
+      weekdayFormat: (date, culture) => localizer.format(date, 'EEE', culture),
+      dayHeaderFormat: (date, culture) => localizer.format(date, "EEEE, dd 'de' MMMM", culture),
+      dayRangeHeaderFormat: ({ start, end }, culture) =>
+        `${localizer.format(start, "dd 'de' MMMM", culture)} — ${localizer.format(end, "dd 'de' MMMM", culture)}`,
+      timeGutterFormat: (date, culture) => localizer.format(date, 'HH:mm', culture),
+      agendaHeaderFormat: ({ start, end }, culture) =>
+        `${localizer.format(start, 'dd/MM/yyyy', culture)} — ${localizer.format(end, 'dd/MM/yyyy', culture)}`,
+      agendaDateFormat: (date, culture) => localizer.format(date, 'dd/MM/yyyy', culture),
+      agendaTimeFormat: (date, culture) => localizer.format(date, 'HH:mm', culture),
+      agendaTimeRangeFormat: ({ start, end }, culture) =>
+        `${localizer.format(start, 'HH:mm', culture)} — ${localizer.format(end, 'HH:mm', culture)}`,
+      monthHeaderFormat: (date, culture) => localizer.format(date, "MMMM 'de' yyyy", culture),
+    }),
+    [localizer],
+  );
 
   const getChartData = () => {
     const period = rankingPeriod === 'semanal' ? 7 : 30;
@@ -219,7 +247,7 @@ export default function AdministracaoPage() {
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           } sm:translate-x-0 sm:static sm:inset-auto transition-transform duration-300 ease-in-out`}
         >
-          <SidebarMenu />
+          <SidebarMenu className="md:min-h-screen" onNavigate={() => setIsSidebarOpen(false)} />
         </div>
 
         {/* Overlay para Mobile */}
@@ -231,7 +259,7 @@ export default function AdministracaoPage() {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-6 sm:ml-64">
+        <main className="flex-1 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Painel de Administração</h1>
             <div className="flex space-x-2 mt-4 sm:mt-0">
@@ -721,17 +749,22 @@ export default function AdministracaoPage() {
                 }
               `}</style>
               <Calendar
+                culture="pt-BR"
                 localizer={localizer}
                 events={eventosCalendario}
                 startAccessor="start"
                 endAccessor="end"
-                style={{ height: 'auto', minHeight: 500 }}
-                defaultView="agenda"
+                style={{ height: 'auto', minHeight: 560 }}
+                view={calendarView}
+                defaultView="week"
                 views={['month', 'week', 'day', 'agenda']}
+                onView={(view) => setCalendarView(view)}
                 onSelectSlot={handleSelectSlot}
+                onSelectEvent={(event) => setSelectedDate(event.start)}
                 selectable
-                date={selectedDate || undefined}
+                date={selectedDate}
                 onNavigate={(date) => setSelectedDate(date)}
+                formats={calendarFormats}
                 messages={{
                   next: 'Próximo',
                   previous: 'Anterior',
@@ -743,6 +776,7 @@ export default function AdministracaoPage() {
                   date: 'Data',
                   time: 'Hora',
                   event: 'Evento',
+                  allDay: 'Dia inteiro',
                   noEventsInRange: 'Nenhum agendamento neste período.',
                   showMore: (total) => `+${total} mais`,
                 }}
@@ -751,8 +785,15 @@ export default function AdministracaoPage() {
                 eventPropGetter={(event) => ({
                   style: {
                     backgroundColor: event.resource.concluido ? '#6B7280' : '#10B981',
+                    borderRadius: '0.75rem',
+                    border: '1px solid #0f766e',
+                    color: '#ffffff',
+                    padding: '6px 10px',
                   },
                 })}
+                tooltipAccessor={(event) =>
+                  `${format(event.start, "dd/MM/yyyy HH:mm", { locale: ptBR })} — ${format(event.end, "dd/MM/yyyy HH:mm", { locale: ptBR })}`
+                }
               />
             </div>
           )}

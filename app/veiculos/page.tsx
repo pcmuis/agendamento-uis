@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { listarVeiculos, criarVeiculo, removerVeiculo, atualizarVeiculo, Veiculo } from '@/app/lib/veiculos';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/app/lib/firebase';
+import { getDb } from '@/app/lib/firebase';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SidebarMenu from '../components/SidebarMenu';
 import { FiEdit2, FiTrash2, FiPlus, FiCheck, FiX, FiArrowUp, FiArrowDown } from 'react-icons/fi';
@@ -22,8 +22,6 @@ export default function VeiculosPage() {
     coluna: 'placa',
     direcao: 'asc',
   });
-
-  const colAgendamentos = collection(db, 'agendamentos');
 
   const carregarVeiculos = async () => {
     setCarregando(true);
@@ -89,7 +87,7 @@ export default function VeiculosPage() {
 
   const verificarAgendamentos = async (veiculoId: string) => {
     try {
-      const agendamentosSnap = await getDocs(colAgendamentos);
+      const agendamentosSnap = await getDocs(collection(getDb(), 'agendamentos'));
       return agendamentosSnap.docs.some((doc) => {
         const ag = doc.data();
         return ag.veiculoId === veiculoId && new Date(ag.chegada) > new Date();
@@ -164,10 +162,10 @@ export default function VeiculosPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 flex">
-        <SidebarMenu />
-        
-        <main className="flex-1 ml-64 p-6">
+      <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+        <SidebarMenu className="md:min-h-screen" />
+
+        <main className="flex-1 p-6">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-gray-800">Gerenciamento de Veículos</h1>
             <button

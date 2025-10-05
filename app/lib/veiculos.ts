@@ -6,7 +6,7 @@ import {
   doc,
   updateDoc,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { getDb } from './firebase';
 
 export interface Veiculo {
   id: string;
@@ -32,27 +32,27 @@ export interface Agendamento {
   concluido?: boolean;
 }
 
-const colVeiculos = collection(db, 'veiculos');
-const colAgendamentos = collection(db, 'agendamentos');
+const getVeiculosCollection = () => collection(getDb(), 'veiculos');
+const getAgendamentosCollection = () => collection(getDb(), 'agendamentos');
 
 export async function listarVeiculos(): Promise<Veiculo[]> {
   try {
-    const snapshot = await getDocs(colVeiculos);
+    const snapshot = await getDocs(getVeiculosCollection());
     const veiculos = snapshot.docs
-      .map((doc) => {
-        if (!doc.exists()) {
+      .map((registro) => {
+        if (!registro.exists()) {
           console.warn('Documento não encontrado');
           return null;
         }
-        const data = doc.data();
+        const data = registro.data();
         return {
-          id: doc.id,
+          id: registro.id,
           placa: data.placa || '',
           modelo: data.modelo || '',
           disponivel: data.disponivel !== false,
         } as Veiculo;
       })
-      .filter((v): v is Veiculo => v !== null);
+      .filter((item): item is Veiculo => item !== null);
 
     return veiculos;
   } catch (error) {
@@ -63,16 +63,16 @@ export async function listarVeiculos(): Promise<Veiculo[]> {
 
 export async function listarAgendamentos(): Promise<Agendamento[]> {
   try {
-    const snapshot = await getDocs(colAgendamentos);
+    const snapshot = await getDocs(getAgendamentosCollection());
     const agendamentos = snapshot.docs
-      .map((doc) => {
-        if (!doc.exists()) {
+      .map((registro) => {
+        if (!registro.exists()) {
           console.warn('Documento de agendamento não encontrado');
           return null;
         }
-        const data = doc.data();
+        const data = registro.data();
         return {
-          id: doc.id,
+          id: registro.id,
           veiculoId: data.veiculoId || '',
           destino: data.destino || '',
           saida: data.saida || '',
@@ -84,7 +84,7 @@ export async function listarAgendamentos(): Promise<Agendamento[]> {
           concluido: data.concluido || false,
         } as Agendamento;
       })
-      .filter((a): a is Agendamento => a !== null);
+      .filter((agendamento): agendamento is Agendamento => agendamento !== null);
 
     return agendamentos;
   } catch (error) {
@@ -99,7 +99,7 @@ export async function criarVeiculo(dados: Omit<Veiculo, 'id'>): Promise<string> 
       throw new Error('Placa e modelo são obrigatórios');
     }
 
-    const docRef = await addDoc(colVeiculos, {
+    const docRef = await addDoc(getVeiculosCollection(), {
       placa: dados.placa.toUpperCase(),
       modelo: dados.modelo,
       disponivel: dados.disponivel !== false,
@@ -118,7 +118,7 @@ export async function removerVeiculo(id: string): Promise<void> {
       throw new Error('ID do veículo é obrigatório');
     }
 
-    const ref = doc(db, 'veiculos', id);
+    const ref = doc(getDb(), 'veiculos', id);
     await deleteDoc(ref);
   } catch (error) {
     console.error(`Erro ao remover veículo ${id}:`, error);
@@ -128,7 +128,7 @@ export async function removerVeiculo(id: string): Promise<void> {
 
 export async function atualizarVeiculo(id: string, dados: Partial<Veiculo>): Promise<void> {
   try {
-    const docRef = doc(db, 'veiculos', id);
+    const docRef = doc(getDb(), 'veiculos', id);
     await updateDoc(docRef, dados);
   } catch (error) {
     console.error(`Erro ao atualizar veículo ${id}:`, error);
@@ -145,11 +145,11 @@ export async function listarVeiculosComStatus(dataSaida: string): Promise<Veicul
 
     return veiculos.map((veiculo) => {
       const agendamentoAtivo = agendamentos.find(
-        (ag) =>
-          ag.veiculoId === veiculo.id &&
-          new Date(dataSaida) >= new Date(ag.saida) &&
-          new Date(dataSaida) <= new Date(ag.chegada) &&
-          !ag.concluido
+        (agendamento) =>
+          agendamento.veiculoId === veiculo.id &&
+          new Date(dataSaida) >= new Date(agendamento.saida) &&
+          new Date(dataSaida) <= new Date(agendamento.chegada) &&
+          !agendamento.concluido,
       );
 
       return {
