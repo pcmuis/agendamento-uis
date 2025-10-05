@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SidebarMenu from '../components/SidebarMenu';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/app/lib/firebase';
+import { getDb } from '@/app/lib/firebase';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import * as XLSX from 'xlsx';
@@ -33,12 +33,10 @@ export default function MotoristasPage() {
   const [filtroAtivo, setFiltroAtivo] = useState<'todos' | 'por-setor' | 'por-cargo'>('todos');
   const [filtroValor, setFiltroValor] = useState<string>('');
 
-  const colMotoristas = collection(db, 'motoristas');
-
   const carregarMotoristas = useCallback(async () => {
     setCarregando(true);
     try {
-      const snapshot = await getDocs(colMotoristas);
+      const snapshot = await getDocs(collection(getDb(), 'motoristas'));
       const lista = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -82,12 +80,14 @@ export default function MotoristasPage() {
     }
 
     try {
+      const database = getDb();
+
       if (editandoId) {
-        const docRef = doc(db, 'motoristas', editandoId);
+        const docRef = doc(database, 'motoristas', editandoId);
         await updateDoc(docRef, dadosForm);
         toast.success('Motorista atualizado com sucesso!');
       } else {
-        await addDoc(colMotoristas, dadosForm);
+        await addDoc(collection(database, 'motoristas'), dadosForm);
         toast.success('Motorista cadastrado com sucesso!');
       }
       resetarFormulario();
@@ -112,7 +112,7 @@ export default function MotoristasPage() {
   const handleExcluir = async (id: string) => {
     if (confirm('Deseja realmente excluir este motorista?')) {
       try {
-        const docRef = doc(db, 'motoristas', id);
+        const docRef = doc(getDb(), 'motoristas', id);
         await deleteDoc(docRef);
         toast.success('Motorista excluído com sucesso!');
         carregarMotoristas();
@@ -163,9 +163,9 @@ export default function MotoristasPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex bg-gray-50">
-        <SidebarMenu />
-        <main className="flex-1 ml-64 p-6 overflow-x-hidden">
+      <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
+        <SidebarMenu className="md:min-h-screen" />
+        <main className="flex-1 p-6 overflow-x-hidden">
           <ToastContainer position="top-right" autoClose={5000} />
           
           <div className="max-w-7xl mx-auto">

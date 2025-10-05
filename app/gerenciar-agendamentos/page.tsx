@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/app/lib/firebase';
+import { getDb } from '@/app/lib/firebase';
 import * as XLSX from 'xlsx';
 
 export interface Veiculo {
@@ -117,7 +117,7 @@ export default function GerenciarAgendamentosPage() {
 
     // Validação de conflitos de agendamento
     try {
-      const colAgendamentos = collection(db, 'agendamentos');
+      const colAgendamentos = collection(getDb(), 'agendamentos');
       const agendamentosSnap = await getDocs(colAgendamentos);
       const agendamentos = agendamentosSnap.docs.map((doc) => ({
         id: doc.id,
@@ -367,10 +367,10 @@ export default function GerenciarAgendamentosPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex bg-gray-50">
-        <SidebarMenu />
+      <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
+        <SidebarMenu className="md:min-h-screen" />
 
-        <main className="flex-1 ml-64 p-6 overflow-x-hidden">
+        <main className="flex-1 p-6 overflow-x-hidden">
           <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
 
           <div className="max-w-7xl mx-auto">

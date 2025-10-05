@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { listarVeiculosComStatus } from '@/app/lib/veiculos';
 import { criarAgendamento } from '@/app/lib/agendamentos';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/app/lib/firebase';
+import { getDb } from '@/app/lib/firebase';
 import { useRouter } from 'next/navigation';
 import Comprovante from '../confirmacao/comprovante';
 import { FiCalendar, FiClock, FiUser, FiHash, FiPhone, FiMapPin, FiEdit, FiX, FiCheck, FiPlus, FiTruck, FiArrowRight, FiArrowLeft } from 'react-icons/fi';
@@ -69,7 +69,8 @@ export default function AgendarPage() {
   useEffect(() => {
     const carregarMotoristas = async () => {
       try {
-        const colMotoristas = collection(db, 'motoristas');
+        const database = getDb();
+        const colMotoristas = collection(database, 'motoristas');
         const snapshot = await getDocs(colMotoristas);
         const lista = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -120,7 +121,8 @@ export default function AgendarPage() {
 
   useEffect(() => {
     const carregarDatasMaximas = async () => {
-      const colAgendamentos = collection(db, 'agendamentos');
+      const database = getDb();
+      const colAgendamentos = collection(database, 'agendamentos');
       const agendamentosSnap = await getDocs(colAgendamentos);
       const agendamentos = agendamentosSnap.docs.map((doc) => ({
         id: doc.id,
@@ -160,7 +162,8 @@ export default function AgendarPage() {
   useEffect(() => {
     const carregarAgendamentosComPlacas = async () => {
       try {
-        const colVeiculos = collection(db, 'veiculos');
+        const database = getDb();
+        const colVeiculos = collection(database, 'veiculos');
         const veiculosSnap = await getDocs(colVeiculos);
         const veiculosMap = veiculosSnap.docs.reduce((map, doc) => {
           const data = doc.data();
@@ -168,7 +171,7 @@ export default function AgendarPage() {
           return map;
         }, {} as Record<string, string>);
 
-        const colAgendamentos = collection(db, 'agendamentos');
+        const colAgendamentos = collection(database, 'agendamentos');
         const snapshot = await getDocs(colAgendamentos);
         const agendamentos = snapshot.docs
           .map((doc) => ({
@@ -267,7 +270,7 @@ export default function AgendarPage() {
       return 'Matrícula não autorizada. Verifique ou cadastre o motorista.';
     }
 
-    const colAgendamentos = collection(db, 'agendamentos');
+    const colAgendamentos = collection(getDb(), 'agendamentos');
     const agendamentosSnap = await getDocs(colAgendamentos);
     const agendamentos = agendamentosSnap.docs.map((doc) => ({
       id: doc.id,
