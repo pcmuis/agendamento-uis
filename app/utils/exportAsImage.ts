@@ -3,6 +3,24 @@ type ExportOptions = { backgroundColor?: string; pixelRatio?: number };
 const isSvgElement = (element: Element): element is SVGElement =>
   element.namespaceURI === 'http://www.w3.org/2000/svg' && !(element instanceof SVGForeignObjectElement);
 
+const sanitizeStyleValue = (property: string, value: string) => {
+  if (!value) {
+    return value;
+  }
+
+  const hasExternalUrl = /url\((?!['"]?data:)/.test(value);
+
+  if (!hasExternalUrl) {
+    return value;
+  }
+
+  if (property === 'background' || property === 'background-image') {
+    return 'none';
+  }
+
+  return value.replace(/url\((?!['"]?data:)[^)]*\)/g, 'none');
+};
+
 const cloneComputedStyles = (source: Element, target: Element) => {
   if (!source || !target) {
     return;
@@ -12,7 +30,11 @@ const cloneComputedStyles = (source: Element, target: Element) => {
     const computed = window.getComputedStyle(source as HTMLElement);
     const cssText = Array.from(computed)
       .filter((property) => property !== 'd')
-      .map((property) => `${property}: ${computed.getPropertyValue(property)};`)
+      .map((property) => {
+        const value = sanitizeStyleValue(property, computed.getPropertyValue(property));
+        return value ? `${property}: ${value};` : null;
+      })
+      .filter(Boolean)
       .join(' ');
 
     if (cssText) {
@@ -56,6 +78,9 @@ const inlineImages = async (element: HTMLElement) => {
       const { width, height } = img.getBoundingClientRect();
 
       try {
+        img.crossOrigin = 'anonymous';
+        img.referrerPolicy = 'no-referrer';
+
         const response = await fetch(img.src, { mode: 'cors' });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -86,6 +111,8 @@ const inlineImages = async (element: HTMLElement) => {
         console.warn('Não foi possível converter uma imagem para data URL ao gerar o resumo.', error);
         const fallback = createPlaceholderDataUrl(width, height);
         await new Promise<void>((resolve) => {
+          img.crossOrigin = 'anonymous';
+          img.referrerPolicy = 'no-referrer';
           img.onload = () => {
             img.onload = null;
             img.onerror = null;
@@ -147,10 +174,19 @@ export async function elementToPng(element: HTMLElement, options?: ExportOptions
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
+    img.referrerPolicy = 'no-referrer';
     img.onload = () => resolve(img);
     img.onerror = (event) => reject(event);
     img.src = url;
   });
+
+  if ('decode' in image) {
+    try {
+      await image.decode();
+    } catch (error) {
+      console.warn('Não foi possível decodificar a imagem antes de desenhar no canvas.', error);
+    }
+  }
 
   const pixelRatio = options?.pixelRatio ?? window.devicePixelRatio ?? 1;
   const canvas = document.createElement('canvas');
@@ -165,9 +201,12 @@ export async function elementToPng(element: HTMLElement, options?: ExportOptions
 
   context.scale(pixelRatio, pixelRatio);
   context.drawImage(image, 0, 0, width, height);
-  URL.revokeObjectURL(url);
 
-  return canvas.toDataURL('image/png');
+  try {
+    return canvas.toDataURL('image/png');
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 export async function downloadElementAsPng(element: HTMLElement, filename: string, options?: ExportOptions) {
