@@ -1,15 +1,29 @@
 type ExportOptions = { backgroundColor?: string; pixelRatio?: number };
 
-const cloneComputedStyles = (source: Element, target: HTMLElement) => {
-  const computed = window.getComputedStyle(source);
-  const cssText = Array.from(computed)
-    .map((property) => `${property}: ${computed.getPropertyValue(property)};`)
-    .join(' ');
+const isSvgElement = (element: Element): element is SVGElement =>
+  element.namespaceURI === 'http://www.w3.org/2000/svg' && !(element instanceof SVGForeignObjectElement);
 
-  target.setAttribute('style', cssText);
+const cloneComputedStyles = (source: Element, target: Element) => {
+  if (!source || !target) {
+    return;
+  }
 
-  const sourceChildren = Array.from(source.children) as Element[];
-  const targetChildren = Array.from(target.children) as HTMLElement[];
+  if (!isSvgElement(source)) {
+    const computed = window.getComputedStyle(source as HTMLElement);
+    const cssText = Array.from(computed)
+      .filter((property) => property !== 'd')
+      .map((property) => `${property}: ${computed.getPropertyValue(property)};`)
+      .join(' ');
+
+    if (cssText) {
+      target.setAttribute('style', cssText);
+    }
+  } else if (source.hasAttribute('style')) {
+    target.setAttribute('style', source.getAttribute('style') ?? '');
+  }
+
+  const sourceChildren = Array.from(source.children);
+  const targetChildren = Array.from(target.children);
 
   for (let index = 0; index < sourceChildren.length; index += 1) {
     const sourceChild = sourceChildren[index];
@@ -21,6 +35,15 @@ const cloneComputedStyles = (source: Element, target: HTMLElement) => {
   }
 };
 
+const createPlaceholderDataUrl = (width: number, height: number) => {
+  const safeWidth = Number.isFinite(width) && width > 0 ? Math.round(width) : 200;
+  const safeHeight = Number.isFinite(height) && height > 0 ? Math.round(height) : 120;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${safeWidth}" height="${safeHeight}" viewBox="0 0 ${safeWidth} ${safeHeight}"><rect width="100%" height="100%" fill="#f3f4f6"/><path d="M12 16a4 4 0 100-8 4 4 0 000 8zm0 2c-4.418 0-8 1.79-8 4v1h16v-1c0-2.21-3.582-4-8-4z" fill="#9ca3af" transform="translate(${safeWidth / 2 - 12},${safeHeight / 2 - 12})"/></svg>`;
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+};
+
 const inlineImages = async (element: HTMLElement) => {
   const images = Array.from(element.querySelectorAll('img')) as HTMLImageElement[];
 
@@ -29,6 +52,8 @@ const inlineImages = async (element: HTMLElement) => {
       if (!img.src || img.src.startsWith('data:')) {
         return;
       }
+
+      const { width, height } = img.getBoundingClientRect();
 
       try {
         const response = await fetch(img.src, { mode: 'cors' });
@@ -44,9 +69,35 @@ const inlineImages = async (element: HTMLElement) => {
           reader.readAsDataURL(blob);
         });
 
-        img.src = dataUrl;
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => {
+            img.onload = null;
+            img.onerror = null;
+            resolve();
+          };
+          img.onerror = (event) => {
+            img.onload = null;
+            img.onerror = null;
+            reject(event);
+          };
+          img.src = dataUrl;
+        });
       } catch (error) {
         console.warn('Não foi possível converter uma imagem para data URL ao gerar o resumo.', error);
+        const fallback = createPlaceholderDataUrl(width, height);
+        await new Promise<void>((resolve) => {
+          img.onload = () => {
+            img.onload = null;
+            img.onerror = null;
+            resolve();
+          };
+          img.onerror = () => {
+            img.onload = null;
+            img.onerror = null;
+            resolve();
+          };
+          img.src = fallback;
+        });
       }
     }),
   );
@@ -124,5 +175,7 @@ export async function downloadElementAsPng(element: HTMLElement, filename: strin
   const link = document.createElement('a');
   link.href = dataUrl;
   link.download = filename;
+  document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
 }
