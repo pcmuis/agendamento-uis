@@ -203,18 +203,31 @@ export async function elementToPng(element: HTMLElement, options?: ExportOptions
   context.drawImage(image, 0, 0, width, height);
 
   try {
-    return canvas.toDataURL('image/png');
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((result) => resolve(result), 'image/png');
+    });
+
+    if (!blob) {
+      throw new Error('Não foi possível gerar a imagem em PNG.');
+    }
+
+    return blob;
   } finally {
     URL.revokeObjectURL(url);
   }
 }
 
 export async function downloadElementAsPng(element: HTMLElement, filename: string, options?: ExportOptions) {
-  const dataUrl = await elementToPng(element, options);
+  const blob = await elementToPng(element, options);
+  const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href = dataUrl;
+  link.href = objectUrl;
   link.download = filename;
+  link.rel = 'noopener noreferrer';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  requestAnimationFrame(() => {
+    URL.revokeObjectURL(objectUrl);
+  });
 }
