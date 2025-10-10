@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { format, endOfDay, isAfter, isBefore, isValid, parseISO, startOfDay } from 'date-fns';
+import { addMinutes, endOfDay, format, isAfter, isBefore, isValid, parseISO, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SidebarMenu from '../components/SidebarMenu';
@@ -55,6 +55,38 @@ const normalizarDatas = (agendamento: Agendamento): AgendamentoNormalizado => {
   };
 };
 
+const MARGEM_MINUTOS_ENTRE_AGENDAMENTOS = 60;
+
+type ContextoHoraDisponibilidade = 'ate' | 'entreInicio' | 'entreFim' | 'apos';
+
+const formatarHoraDisponibilidade = (date: Date, contexto: ContextoHoraDisponibilidade) => {
+  const horas = date.getHours();
+  const minutos = date.getMinutes();
+  const horasSemZero = horas.toString();
+  const minutosFormatados = minutos.toString().padStart(2, '0');
+
+  if (minutos === 0) {
+    if (contexto === 'ate') {
+      return `${horasSemZero}h${minutosFormatados}`;
+    }
+
+    if (contexto === 'entreInicio') {
+      return horasSemZero;
+    }
+
+    return `${horasSemZero}h`;
+  }
+
+  return format(date, 'H:mm', { locale: ptBR });
+};
+
+const limitarAoDia = (data: Date, inicioDoDia: Date, fimDoDia: Date) => {
+  const limiteInferior = Math.max(data.getTime(), inicioDoDia.getTime());
+  const limiteSuperior = Math.min(limiteInferior, fimDoDia.getTime());
+
+  return new Date(limiteSuperior);
+};
+
 const getDisponibilidadeTexto = (
   agendamentosDoDia: AgendamentoNormalizado[],
   dia: Date,
@@ -77,7 +109,8 @@ const getDisponibilidadeTexto = (
 
   const primeiraSaida = ordenados[0].saidaDate;
   if (primeiraSaida && isAfter(primeiraSaida, startDay)) {
-    partes.push(`Livre até ${formatarHora(primeiraSaida)}`);
+    const primeiraSaidaNoDia = limitarAoDia(primeiraSaida, startDay, endDay);
+    partes.push(`Livre até ${formatarHoraDisponibilidade(primeiraSaidaNoDia, 'ate')}`);
   }
 
   for (let i = 0; i < ordenados.length - 1; i += 1) {
@@ -85,20 +118,32 @@ const getDisponibilidadeTexto = (
     const proximo = ordenados[i + 1];
 
     if (atual.chegadaDate && proximo.saidaDate && isBefore(atual.chegadaDate, proximo.saidaDate)) {
-      partes.push(`Livre entre ${formatarHora(atual.chegadaDate)} e ${formatarHora(proximo.saidaDate)}`);
+      const inicioLivre = limitarAoDia(atual.chegadaDate, startDay, endDay);
+      const fimLivreComMargem = addMinutes(proximo.saidaDate, -MARGEM_MINUTOS_ENTRE_AGENDAMENTOS);
+      const fimLivre = limitarAoDia(fimLivreComMargem, startDay, endDay);
+
+      if (isAfter(fimLivre, inicioLivre)) {
+        partes.push(
+          `Livre entre ${formatarHoraDisponibilidade(inicioLivre, 'entreInicio')} e ${formatarHoraDisponibilidade(
+            fimLivre,
+            'entreFim',
+          )}`,
+        );
+      }
     }
   }
 
   const ultimaChegada = ordenados[ordenados.length - 1].chegadaDate;
   if (ultimaChegada && isBefore(ultimaChegada, endDay)) {
-    partes.push(`Livre após ${formatarHora(ultimaChegada)}`);
+    const ultimaChegadaNoDia = limitarAoDia(ultimaChegada, startDay, endDay);
+    partes.push(`Livre após ${formatarHoraDisponibilidade(ultimaChegadaNoDia, 'apos')}`);
   }
 
   if (partes.length === 0) {
     return 'Ocupado durante o expediente';
   }
 
-  return partes.join(' • ');
+  return partes.join(', ');
 };
 
 const formatarTituloResumo = (dia: Date) =>
