@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SidebarMenu from '../components/SidebarMenu';
 import { listarVeiculosComStatus } from '@/app/lib/veiculos';
@@ -49,6 +49,7 @@ export default function GerenciarAgendamentosPage() {
   const [carregando, setCarregando] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'ativos' | 'concluidos'>('ativos');
   const [codigoFiltro, setCodigoFiltro] = useState<string>('');
+  const [linhasExpandidas, setLinhasExpandidas] = useState<Set<string>>(() => new Set());
 
   const carregarDados = useCallback(async () => {
     try {
@@ -365,6 +366,18 @@ export default function GerenciarAgendamentosPage() {
     return telefone;
   };
 
+  const alternarLinhaExpandida = useCallback((id: string) => {
+    setLinhasExpandidas((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(id)) {
+        novo.delete(id);
+      } else {
+        novo.add(id);
+      }
+      return novo;
+    });
+  }, []);
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
@@ -487,112 +500,266 @@ export default function GerenciarAgendamentosPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        {[
-                          { nome: 'Status', coluna: undefined },
-                          { nome: 'Comprovante', coluna: 'codigo' as keyof Agendamento },
-                          { nome: 'Saída', coluna: 'saida' as keyof Agendamento },
-                          { nome: 'Chegada', coluna: 'chegada' as keyof Agendamento },
-                          { nome: 'Veículo', coluna: 'veiculoId' as keyof Agendamento },
-                          { nome: 'Motorista', coluna: 'motorista' as keyof Agendamento },
-                          { nome: 'Matrícula', coluna: 'matricula' as keyof Agendamento },
-                          { nome: 'Telefone', coluna: 'telefone' as keyof Agendamento },
-                          { nome: 'Destino', coluna: 'destino' as keyof Agendamento },
-                          { nome: 'Agendador', coluna: 'nomeAgendador' as keyof Agendamento }, // Adicionado aqui
-                          { nome: 'Ações', coluna: undefined },
-                        ].map((col) => (
-                          <th
-                            key={col.coluna || col.nome}
-                            onClick={() => col.coluna && handleOrdenar(col.coluna)}
-                            className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                              col.coluna ? 'cursor-pointer hover:bg-gray-100' : ''
-                            }`}
-                          >
-                            <div className="flex items-center">
-                              {col.nome}
-                              {ordenacao.coluna === col.coluna && (
-                                <span className="ml-1">
-                                  {ordenacao.direcao === 'asc' ? '↑' : '↓'}
-                                </span>
-                              )}
-                            </div>
-                          </th>
-                        ))}
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <div className="flex items-center">Status</div>
+                        </th>
+                        <th
+                          onClick={() => handleOrdenar('saida')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        >
+                          <div className="flex items-center">
+                            Saída
+                            {ordenacao.coluna === 'saida' && (
+                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleOrdenar('motorista')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        >
+                          <div className="flex items-center">
+                            Motorista
+                            {ordenacao.coluna === 'motorista' && (
+                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleOrdenar('destino')}
+                          className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        >
+                          <div className="flex items-center">
+                            Destino
+                            {ordenacao.coluna === 'destino' && (
+                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleOrdenar('chegada')}
+                          className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        >
+                          <div className="flex items-center">
+                            Chegada
+                            {ordenacao.coluna === 'chegada' && (
+                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleOrdenar('veiculoId')}
+                          className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        >
+                          <div className="flex items-center">
+                            Veículo
+                            {ordenacao.coluna === 'veiculoId' && (
+                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleOrdenar('matricula')}
+                          className="hidden xl:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        >
+                          <div className="flex items-center">
+                            Matrícula
+                            {ordenacao.coluna === 'matricula' && (
+                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleOrdenar('telefone')}
+                          className="hidden xl:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        >
+                          <div className="flex items-center">
+                            Telefone
+                            {ordenacao.coluna === 'telefone' && (
+                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleOrdenar('codigo')}
+                          className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        >
+                          <div className="flex items-center">
+                            Comprovante
+                            {ordenacao.coluna === 'codigo' && (
+                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleOrdenar('nomeAgendador')}
+                          className="hidden xl:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        >
+                          <div className="flex items-center">
+                            Agendador
+                            {ordenacao.coluna === 'nomeAgendador' && (
+                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {agendamentosFiltrados.map((ag) => {
                         const status = getStatusAgendamento(ag);
+                        const expandido = ag.id ? linhasExpandidas.has(ag.id) : false;
                         return (
-                          <tr key={ag.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(status)}`}>
-                                {status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {ag.codigo || '-'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {formatarDataHora(ag.saida)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {formatarDataHora(ag.chegada)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {getVeiculoNome(ag.veiculoId)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {ag.motorista}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {ag.matricula}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {formatarTelefone(ag.telefone)}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-900">
-                              {ag.destino}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {ag.nomeAgendador || ag.motorista}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex space-x-2">
+                          <Fragment key={ag.id}>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap">
                                 <button
-                                  onClick={() => handleEditar(ag)}
-                                  className="text-green-600 hover:text-green-900"
-                                  title="Editar"
-                                  disabled={carregando}
+                                  type="button"
+                                  onClick={() => ag.id && alternarLinhaExpandida(ag.id)}
+                                  className="flex w-full items-center justify-between md:justify-start md:cursor-default md:pointer-events-none focus:outline-none md:focus:outline-none"
+                                  aria-expanded={expandido}
+                                  aria-label="Ver detalhes do agendamento"
                                 >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  <span
+                                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(status)}`}
+                                  >
+                                    {status}
+                                  </span>
+                                  <svg
+                                    className={`w-4 h-4 ml-3 text-gray-400 transition-transform transform md:hidden ${
+                                      expandido ? 'rotate-180' : ''
+                                    }`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                   </svg>
                                 </button>
-                                {!ag.concluido && (
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {formatarDataHora(ag.saida)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {ag.motorista}
+                              </td>
+                              <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {ag.destino}
+                              </td>
+                              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {formatarDataHora(ag.chegada)}
+                              </td>
+                              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {getVeiculoNome(ag.veiculoId)}
+                              </td>
+                              <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {ag.matricula}
+                              </td>
+                              <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {formatarTelefone(ag.telefone)}
+                              </td>
+                              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {ag.codigo || '-'}
+                              </td>
+                              <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {ag.nomeAgendador || ag.motorista}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div className="flex space-x-2">
                                   <button
-                                    onClick={() => handleConcluir(ag.id)}
-                                    className="text-blue-600 hover:text-blue-900"
-                                    title="Concluir"
+                                    onClick={() => handleEditar(ag)}
+                                    className="text-green-600 hover:text-green-900"
+                                    title="Editar"
                                     disabled={carregando}
                                   >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                      />
                                     </svg>
                                   </button>
-                                )}
-                                <button
-                                  onClick={() => handleExcluir(ag.id)}
-                                  className="text-red-600 hover:text-red-900"
-                                  title="Excluir"
-                                  disabled={carregando}
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
+                                  {!ag.concluido && (
+                                    <button
+                                      onClick={() => handleConcluir(ag.id)}
+                                      className="text-blue-600 hover:text-blue-900"
+                                      title="Concluir"
+                                      disabled={carregando}
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleExcluir(ag.id)}
+                                    className="text-red-600 hover:text-red-900"
+                                    title="Excluir"
+                                    disabled={carregando}
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr className={`md:hidden ${expandido ? '' : 'hidden'}`}>
+                              <td colSpan={11} className="px-6 pb-4">
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700 space-y-3">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Comprovante</p>
+                                      <p className="text-gray-900">{ag.codigo || '-'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Chegada</p>
+                                      <p className="text-gray-900">{formatarDataHora(ag.chegada)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Veículo</p>
+                                      <p className="text-gray-900">{getVeiculoNome(ag.veiculoId)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Matrícula</p>
+                                      <p className="text-gray-900">{ag.matricula || '-'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Telefone</p>
+                                      <p className="text-gray-900">{formatarTelefone(ag.telefone)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Agendador</p>
+                                      <p className="text-gray-900">{ag.nomeAgendador || ag.motorista}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Destino</p>
+                                      <p className="text-gray-900">{ag.destino}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Status</p>
+                                      <span
+                                        className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${getStatusStyle(status)}`}
+                                      >
+                                        {status}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase text-gray-500">Observações</p>
+                                    <p className="text-gray-900">{ag.observacoes?.trim() ? ag.observacoes : 'Sem observações'}</p>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          </Fragment>
                         );
                       })}
                     </tbody>
