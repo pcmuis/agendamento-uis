@@ -246,6 +246,11 @@ export default function GerenciarAgendamentosPage() {
     return veiculo ? `${veiculo.modelo} - ${veiculo.placa}` : 'Veículo não encontrado';
   };
 
+  const getVeiculoPlaca = (veiculoId: string) => {
+    const veiculo = veiculos.find((v) => v.id === veiculoId);
+    return veiculo?.placa || 'Placa não informada';
+  };
+
   const getStatusAgendamento = (agendamento: Agendamento) => {
     const agora = new Date();
     const chegada = new Date(agendamento.chegada);
@@ -500,16 +505,13 @@ export default function GerenciarAgendamentosPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          <div className="flex items-center">Status</div>
-                        </th>
                         <th
-                          onClick={() => handleOrdenar('saida')}
+                          onClick={() => handleOrdenar('veiculoId')}
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                         >
                           <div className="flex items-center">
-                            Saída
-                            {ordenacao.coluna === 'saida' && (
+                            Placa
+                            {ordenacao.coluna === 'veiculoId' && (
                               <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
                             )}
                           </div>
@@ -526,78 +528,23 @@ export default function GerenciarAgendamentosPage() {
                           </div>
                         </th>
                         <th
-                          onClick={() => handleOrdenar('destino')}
-                          className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleOrdenar('saida')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                         >
                           <div className="flex items-center">
-                            Destino
-                            {ordenacao.coluna === 'destino' && (
+                            Saída
+                            {ordenacao.coluna === 'saida' && (
                               <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
                             )}
                           </div>
                         </th>
                         <th
                           onClick={() => handleOrdenar('chegada')}
-                          className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                         >
                           <div className="flex items-center">
-                            Chegada
+                            Retorno
                             {ordenacao.coluna === 'chegada' && (
-                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          onClick={() => handleOrdenar('veiculoId')}
-                          className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        >
-                          <div className="flex items-center">
-                            Veículo
-                            {ordenacao.coluna === 'veiculoId' && (
-                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          onClick={() => handleOrdenar('matricula')}
-                          className="hidden xl:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        >
-                          <div className="flex items-center">
-                            Matrícula
-                            {ordenacao.coluna === 'matricula' && (
-                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          onClick={() => handleOrdenar('telefone')}
-                          className="hidden xl:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        >
-                          <div className="flex items-center">
-                            Telefone
-                            {ordenacao.coluna === 'telefone' && (
-                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          onClick={() => handleOrdenar('codigo')}
-                          className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        >
-                          <div className="flex items-center">
-                            Comprovante
-                            {ordenacao.coluna === 'codigo' && (
-                              <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          onClick={() => handleOrdenar('nomeAgendador')}
-                          className="hidden xl:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        >
-                          <div className="flex items-center">
-                            Agendador
-                            {ordenacao.coluna === 'nomeAgendador' && (
                               <span className="ml-1">{ordenacao.direcao === 'asc' ? '↑' : '↓'}</span>
                             )}
                           </div>
@@ -611,60 +558,44 @@ export default function GerenciarAgendamentosPage() {
                         const expandido = ag.id ? linhasExpandidas.has(ag.id) : false;
                         return (
                           <Fragment key={ag.id}>
-                            <tr className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <button
-                                  type="button"
-                                  onClick={() => ag.id && alternarLinhaExpandida(ag.id)}
-                                  className="flex w-full items-center justify-between md:justify-start md:cursor-default md:pointer-events-none focus:outline-none md:focus:outline-none"
-                                  aria-expanded={expandido}
-                                  aria-label="Ver detalhes do agendamento"
-                                >
+                            <tr
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => ag.id && alternarLinhaExpandida(ag.id)}
+                              onKeyDown={(event) => {
+                                if (event.target !== event.currentTarget || !ag.id) {
+                                  return;
+                                }
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  alternarLinhaExpandida(ag.id);
+                                }
+                              }}
+                              aria-expanded={expandido}
+                              className={`hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer ${expandido ? 'bg-gray-50' : ''}`}
+                            >
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <div className="flex items-center gap-3">
                                   <span
                                     className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(status)}`}
                                   >
                                     {status}
                                   </span>
-                                  <svg
-                                    className={`w-4 h-4 ml-3 text-gray-400 transition-transform transform md:hidden ${
-                                      expandido ? 'rotate-180' : ''
-                                    }`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </button>
+                                  <span>{getVeiculoPlaca(ag.veiculoId)}</span>
+                                </div>
                               </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ag.motorista}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {formatarDataHora(ag.saida)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {ag.motorista}
-                              </td>
-                              <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {ag.destino}
-                              </td>
-                              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {formatarDataHora(ag.chegada)}
                               </td>
-                              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {getVeiculoNome(ag.veiculoId)}
-                              </td>
-                              <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {ag.matricula}
-                              </td>
-                              <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {formatarTelefone(ag.telefone)}
-                              </td>
-                              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {ag.codigo || '-'}
-                              </td>
-                              <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {ag.nomeAgendador || ag.motorista}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <td
+                                className="px-6 py-4 whitespace-nowrap text-sm font-medium"
+                                onClick={(event) => event.stopPropagation()}
+                                onKeyDown={(event) => event.stopPropagation()}
+                              >
                                 <div className="flex space-x-2">
                                   <button
                                     onClick={() => handleEditar(ag)}
@@ -711,37 +642,49 @@ export default function GerenciarAgendamentosPage() {
                                 </div>
                               </td>
                             </tr>
-                            <tr className={`md:hidden ${expandido ? '' : 'hidden'}`}>
-                              <td colSpan={11} className="px-6 pb-4">
-                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700 space-y-3">
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <tr className={expandido ? 'bg-gray-50' : 'hidden'}>
+                              <td colSpan={5} className="px-6 pb-4">
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700 space-y-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                      <p className="text-xs font-semibold uppercase text-gray-500">Comprovante</p>
-                                      <p className="text-gray-900">{ag.codigo || '-'}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs font-semibold uppercase text-gray-500">Chegada</p>
-                                      <p className="text-gray-900">{formatarDataHora(ag.chegada)}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs font-semibold uppercase text-gray-500">Veículo</p>
-                                      <p className="text-gray-900">{getVeiculoNome(ag.veiculoId)}</p>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Motorista</p>
+                                      <p className="text-gray-900">{ag.motorista}</p>
                                     </div>
                                     <div>
                                       <p className="text-xs font-semibold uppercase text-gray-500">Matrícula</p>
                                       <p className="text-gray-900">{ag.matricula || '-'}</p>
                                     </div>
                                     <div>
-                                      <p className="text-xs font-semibold uppercase text-gray-500">Telefone</p>
-                                      <p className="text-gray-900">{formatarTelefone(ag.telefone)}</p>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Saída</p>
+                                      <p className="text-gray-900">{formatarDataHora(ag.saida)}</p>
                                     </div>
                                     <div>
-                                      <p className="text-xs font-semibold uppercase text-gray-500">Agendador</p>
-                                      <p className="text-gray-900">{ag.nomeAgendador || ag.motorista}</p>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Retorno</p>
+                                      <p className="text-gray-900">{formatarDataHora(ag.chegada)}</p>
                                     </div>
                                     <div>
                                       <p className="text-xs font-semibold uppercase text-gray-500">Destino</p>
                                       <p className="text-gray-900">{ag.destino}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Telefone</p>
+                                      <p className="text-gray-900">{formatarTelefone(ag.telefone)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Veículo</p>
+                                      <p className="text-gray-900">{getVeiculoNome(ag.veiculoId)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Placa</p>
+                                      <p className="text-gray-900">{getVeiculoPlaca(ag.veiculoId)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Comprovante</p>
+                                      <p className="text-gray-900">{ag.codigo || '-'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase text-gray-500">Agendador</p>
+                                      <p className="text-gray-900">{ag.nomeAgendador || ag.motorista}</p>
                                     </div>
                                     <div>
                                       <p className="text-xs font-semibold uppercase text-gray-500">Status</p>
