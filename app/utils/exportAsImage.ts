@@ -8,16 +8,19 @@ const sanitizeStyleValue = (property: string, value: string) => {
     return value;
   }
 
+  // Remove referências a URLs externas (exceto data URLs)
   const hasExternalUrl = /url\((?!['"]?data:)/.test(value);
 
   if (!hasExternalUrl) {
     return value;
   }
 
-  if (property === 'background' || property === 'background-image') {
+  // Remove background-images e outras propriedades com URLs externas
+  if (property === 'background' || property === 'background-image' || property.includes('background')) {
     return 'none';
   }
 
+  // Remove qualquer URL externa de outras propriedades
   return value.replace(/url\((?!['"]?data:)[^)]*\)/g, 'none');
 };
 
@@ -28,8 +31,18 @@ const cloneComputedStyles = (source: Element, target: Element) => {
 
   if (!isSvgElement(source)) {
     const computed = window.getComputedStyle(source as HTMLElement);
-    const cssText = Array.from(computed)
-      .filter((property) => property !== 'd')
+    const propertiesToInclude = [
+      'color', 'background-color', 'background', 'border', 'border-radius',
+      'padding', 'margin', 'width', 'height', 'font-size', 'font-weight',
+      'font-family', 'text-align', 'display', 'flex', 'flex-direction',
+      'justify-content', 'align-items', 'gap', 'box-shadow', 'opacity',
+      'overflow', 'position', 'top', 'left', 'right', 'bottom',
+      'transform', 'transition', 'z-index', 'max-width', 'min-width',
+      'max-height', 'min-height', 'line-height', 'letter-spacing',
+      'text-transform', 'text-decoration', 'white-space', 'word-wrap',
+    ];
+    
+    const cssText = propertiesToInclude
       .map((property) => {
         const value = sanitizeStyleValue(property, computed.getPropertyValue(property));
         return value ? `${property}: ${value};` : null;
@@ -144,6 +157,22 @@ export async function elementToPng(element: HTMLElement, options?: ExportOptions
   cloneComputedStyles(element, clone);
   await inlineImages(clone);
 
+  // Remove elementos que podem causar problemas (scripts, links, etc)
+  const elementsToRemove = clone.querySelectorAll('script, link[rel="stylesheet"], style[data-next-hide-fouc]');
+  elementsToRemove.forEach((el) => el.remove());
+
+  // Força o uso de fontes genéricas para evitar problemas com fontes externas
+  const allElements = clone.querySelectorAll('*');
+  allElements.forEach((el) => {
+    if (el instanceof HTMLElement) {
+      const computedFont = window.getComputedStyle(el).fontFamily;
+      // Se a fonte não for uma fonte genérica, substitui por uma genérica
+      if (computedFont && !/serif|sans-serif|monospace|cursive|fantasy/i.test(computedFont)) {
+        el.style.fontFamily = 'Arial, sans-serif';
+      }
+    }
+  });
+
   const wrapper = document.createElement('div');
   wrapper.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
   wrapper.style.width = `${width}px`;
@@ -151,6 +180,7 @@ export async function elementToPng(element: HTMLElement, options?: ExportOptions
   wrapper.style.backgroundColor = options?.backgroundColor ?? '#ffffff';
   wrapper.style.padding = '0';
   wrapper.style.margin = '0';
+  wrapper.style.boxSizing = 'border-box';
   wrapper.appendChild(clone);
 
   const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
@@ -167,17 +197,25 @@ export async function elementToPng(element: HTMLElement, options?: ExportOptions
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.appendChild(foreignObject);
 
+  // Converte SVG para data URL diretamente para evitar problemas de CORS
   const svgData = new XMLSerializer().serializeToString(svg);
-  const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(svgBlob);
+  // Remove qualquer referência a recursos externos no SVG antes de serializar
+  const cleanedSvgData = svgData.replace(/href=["'][^"']*["']/gi, '').replace(/xlink:href=["'][^"']*["']/gi, '');
+  const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(cleanedSvgData)}`;
 
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.referrerPolicy = 'no-referrer';
-    img.onload = () => resolve(img);
-    img.onerror = (event) => reject(event);
-    img.src = url;
+    // Não usar crossOrigin para data URLs
+    img.onload = () => {
+      // Aguarda um frame extra para garantir que a imagem esteja completamente carregada
+      requestAnimationFrame(() => {
+        resolve(img);
+      });
+    };
+    img.onerror = (event) => {
+      reject(new Error('Falha ao carregar a imagem SVG gerada.'));
+    };
+    img.src = svgDataUrl;
   });
 
   if ('decode' in image) {
@@ -193,18 +231,52 @@ export async function elementToPng(element: HTMLElement, options?: ExportOptions
   canvas.width = width * pixelRatio;
   canvas.height = height * pixelRatio;
 
-  const context = canvas.getContext('2d');
+  const context = canvas.getContext('2d', { willReadFrequently: false });
   if (!context) {
-    URL.revokeObjectURL(url);
     throw new Error('Não foi possível criar o contexto 2D para gerar a imagem.');
   }
 
+  // Preenche o fundo antes de desenhar
+  context.fillStyle = options?.backgroundColor ?? '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
   context.scale(pixelRatio, pixelRatio);
-  context.drawImage(image, 0, 0, width, height);
+  
+  try {
+    context.drawImage(image, 0, 0, width, height);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    throw new Error(`Não foi possível desenhar a imagem no canvas: ${errorMessage}`);
+  }
+
+  // Verifica se o canvas está contaminado antes de tentar exportar
+  try {
+    // Tenta ler um pixel para verificar se o canvas está contaminado
+    const imageData = context.getImageData(0, 0, 1, 1);
+    if (!imageData) {
+      throw new Error('Canvas está contaminado e não pode ser exportado.');
+    }
+  } catch (error) {
+    throw new Error('Canvas está contaminado. Isso geralmente acontece quando há recursos externos (fontes, imagens) sendo carregados. Tente garantir que todos os recursos sejam locais.');
+  }
 
   try {
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((result) => resolve(result), 'image/png');
+    const blob = await new Promise<Blob | null>((resolve, reject) => {
+      try {
+        canvas.toBlob(
+          (result) => {
+            if (result) {
+              resolve(result);
+            } else {
+              reject(new Error('toBlob retornou null. O canvas pode estar contaminado ou há um problema na geração da imagem.'));
+            }
+          },
+          'image/png',
+        );
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        reject(new Error(`Erro ao chamar toBlob: ${errorMessage}`));
+      }
     });
 
     if (!blob) {
@@ -212,8 +284,13 @@ export async function elementToPng(element: HTMLElement, options?: ExportOptions
     }
 
     return blob;
-  } finally {
-    URL.revokeObjectURL(url);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    // Se o erro for SecurityError, é o problema de canvas tainted
+    if (errorMessage.includes('Tainted') || errorMessage.includes('tainted') || errorMessage.includes('SecurityError')) {
+      throw new Error('Canvas contaminado: O canvas não pode ser exportado porque contém recursos de origem cruzada. Isso geralmente acontece quando há fontes ou imagens externas sendo carregadas.');
+    }
+    throw error;
   }
 }
 
