@@ -389,115 +389,84 @@ export default function ResumoDiarioPage() {
             <div className="space-y-8">
               <section 
                 ref={agendadosRef} 
-                className="mx-auto w-full max-w-4xl space-y-8 bg-white px-10 py-12 shadow-xl print:shadow-none"
+                className="mx-auto w-full bg-white p-8"
+                style={{ maxWidth: '800px' }}
               >
-                {/* Cabeçalho do Resumo */}
-                <div className="border-b-2 border-gray-200 pb-6">
-                  <h2 className="text-center text-3xl font-bold text-gray-900 mb-2">
+                {/* Cabeçalho */}
+                <div className="mb-8 text-center">
+                  <h2 className="mb-2 text-2xl font-bold text-gray-900">
                     {formatarTituloResumo(dataBase)}
                   </h2>
-                  <p className="text-center text-sm text-gray-600 uppercase tracking-wide">
-                    Resumo Diário de Veículos
-                  </p>
+                  <p className="text-sm text-gray-600">RESUMO DIÁRIO DE VEÍCULOS</p>
                 </div>
 
-                {/* Cards de Estatísticas */}
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="rounded-lg border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100 p-6 text-center shadow-md">
-                    <p className="text-xs font-bold uppercase tracking-wider text-green-700 mb-2">
-                      Total Cadastrados
-                    </p>
-                    <p className="text-4xl font-extrabold text-green-900">{totais.totalVeiculos}</p>
+                {/* Estatísticas */}
+                <div className="mb-8 grid grid-cols-3 gap-4">
+                  <div className="rounded border border-gray-300 bg-white p-4 text-center">
+                    <p className="mb-1 text-xs font-semibold uppercase text-gray-600">Total Cadastrados</p>
+                    <p className="text-3xl font-bold text-gray-900">{totais.totalVeiculos}</p>
                   </div>
-                  <div className="rounded-lg border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 text-center shadow-md">
-                    <p className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-2">
-                      Agendados
-                    </p>
-                    <p className="text-4xl font-extrabold text-blue-900">{totais.totalAgendados}</p>
+                  <div className="rounded border border-blue-300 bg-blue-50 p-4 text-center">
+                    <p className="mb-1 text-xs font-semibold uppercase text-blue-700">Agendados</p>
+                    <p className="text-3xl font-bold text-blue-900">{totais.totalAgendados}</p>
                   </div>
-                  <div className="rounded-lg border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 p-6 text-center shadow-md">
-                    <p className="text-xs font-bold uppercase tracking-wider text-amber-700 mb-2">
-                      Disponíveis
-                    </p>
-                    <p className="text-4xl font-extrabold text-amber-900">{totais.totalDisponiveis}</p>
+                  <div className="rounded border border-green-300 bg-green-50 p-4 text-center">
+                    <p className="mb-1 text-xs font-semibold uppercase text-green-700">Disponíveis</p>
+                    <p className="text-3xl font-bold text-green-900">{totais.totalDisponiveis}</p>
                   </div>
                 </div>
 
-                {/* Seção de Veículos Agendados */}
-                <div className="space-y-6">
-                  <div className="border-l-4 border-blue-500 pl-4">
-                    <h2 className="text-2xl font-bold text-gray-900 uppercase tracking-wide">
-                      Veículos Agendados
-                    </h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {veiculosAgendados.length} veículo{veiculosAgendados.length !== 1 ? 's' : ''} com agendamento{veiculosAgendados.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-
+                {/* Veículos Agendados */}
+                <div className="mb-8">
+                  <h3 className="mb-4 text-xl font-bold text-gray-900">
+                    VEÍCULOS AGENDADOS ({veiculosAgendados.length})
+                  </h3>
+                  
                   {veiculosAgendados.length === 0 ? (
-                    <div className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-12 text-center">
-                      <p className="text-lg font-medium text-gray-600">
-                        Nenhum agendamento encontrado para este dia
-                      </p>
+                    <div className="rounded border border-gray-300 bg-gray-50 p-6 text-center">
+                      <p className="text-gray-600">Nenhum agendamento encontrado para este dia</p>
                     </div>
                   ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {veiculosAgendados.map(({ veiculo, agendamentos: agendamentosVeiculo, disponibilidade }) => (
-                        <div
-                          key={veiculo.id}
-                          className="rounded-xl border-2 border-gray-300 bg-white p-6 shadow-md hover:shadow-lg transition-shadow"
-                        >
-                          <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-                            <div className="flex-1">
-                              <h3 className="text-xl font-bold text-gray-900 mb-1">
-                                {veiculo.modelo}
-                              </h3>
-                              <p className="text-base font-semibold text-gray-700">
-                                Placa: <span className="font-mono text-gray-900">{veiculo.placa}</span>
-                              </p>
-                              <p className="text-sm text-gray-600 mt-2 italic">
-                                {disponibilidade}
-                              </p>
+                        <div key={veiculo.id} className="rounded border-2 border-gray-300 bg-white p-4">
+                          {/* Cabeçalho do Veículo */}
+                          <div className="mb-3 border-b border-gray-200 pb-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="text-lg font-bold text-gray-900">{veiculo.modelo}</h4>
+                                <p className="text-sm text-gray-700">
+                                  <span className="font-semibold">Placa:</span> {veiculo.placa}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-600 italic">{disponibilidade}</p>
+                              </div>
+                              <div className="rounded bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-900">
+                                {agendamentosVeiculo.length} agendamento{agendamentosVeiculo.length > 1 ? 's' : ''}
+                              </div>
                             </div>
-                            <span className="ml-4 inline-flex items-center rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-800 border-2 border-blue-300">
-                              {agendamentosVeiculo.length} agendamento{agendamentosVeiculo.length > 1 ? 's' : ''}
-                            </span>
                           </div>
 
+                          {/* Agendamentos */}
                           <div className="space-y-3">
-                            {agendamentosVeiculo.map((agendamento, index) => (
-                              <div
-                                key={agendamento.id}
-                                className={`rounded-lg border-2 border-gray-200 bg-gradient-to-r from-gray-50 to-white p-5 ${
-                                  index < agendamentosVeiculo.length - 1 ? 'mb-3' : ''
-                                }`}
-                              >
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center border-2 border-blue-300">
-                                      <span className="text-xs font-bold text-blue-900">
-                                        {String(index + 1).padStart(2, '0')}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <div className="text-lg font-bold text-gray-900">
-                                        {formatarHora(agendamento.saidaDate)} – {formatarHora(agendamento.chegadaDate)}
-                                      </div>
-                                      <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                        Horário do Agendamento
-                                      </div>
-                                    </div>
+                            {agendamentosVeiculo.map((agendamento, idx) => (
+                              <div key={agendamento.id} className="rounded border border-gray-200 bg-gray-50 p-4">
+                                <div className="mb-2 grid grid-cols-2 gap-4">
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase text-gray-500">Horário</p>
+                                    <p className="text-base font-bold text-gray-900">
+                                      {formatarHora(agendamento.saidaDate)} – {formatarHora(agendamento.chegadaDate)}
+                                    </p>
                                   </div>
-                                  <div className="text-right">
-                                    <div className="text-base font-bold text-gray-900 uppercase">
-                                      {agendamento.destino || 'Destino não informado'}
-                                    </div>
-                                    <div className="text-xs text-gray-500 mt-1">Destino</div>
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase text-gray-500">Destino</p>
+                                    <p className="text-base font-bold text-gray-900">
+                                      {agendamento.destino || 'Não informado'}
+                                    </p>
                                   </div>
                                 </div>
                                 
                                 {(agendamento.motorista || agendamento.matricula) && (
-                                  <div className="mt-3 pt-3 border-t border-gray-200">
+                                  <div className="mt-3 border-t border-gray-200 pt-3">
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                       {agendamento.motorista && (
                                         <div>
@@ -516,10 +485,10 @@ export default function ResumoDiarioPage() {
                                 )}
                                 
                                 {agendamento.observacoes && (
-                                  <div className="mt-3 pt-3 border-t border-gray-200">
+                                  <div className="mt-3 border-t border-gray-200 pt-3">
                                     <p className="text-sm">
                                       <span className="font-semibold text-gray-700">Observações: </span>
-                                      <span className="text-gray-900 italic">{agendamento.observacoes}</span>
+                                      <span className="text-gray-900">{agendamento.observacoes}</span>
                                     </p>
                                   </div>
                                 )}
@@ -533,47 +502,36 @@ export default function ResumoDiarioPage() {
                 </div>
               </section>
 
-              {/* Seção de Veículos Disponíveis */}
+              {/* Veículos Disponíveis */}
               <section 
                 ref={disponiveisRef} 
-                className="mx-auto w-full max-w-4xl space-y-6 rounded-2xl border-2 border-dashed border-emerald-300 bg-gradient-to-br from-emerald-50 to-white px-10 py-12 shadow-xl print:shadow-none"
+                className="mx-auto w-full rounded border-2 border-dashed border-green-300 bg-white p-8"
+                style={{ maxWidth: '800px' }}
               >
-                <div className="border-l-4 border-emerald-500 pl-4">
-                  <h2 className="text-2xl font-bold text-gray-900 uppercase tracking-wide mb-2">
-                    Veículos Disponíveis
-                  </h2>
-                  <p className="text-sm text-gray-600">
-                    {veiculosDisponiveis.length} veículo{veiculosDisponiveis.length !== 1 ? 's' : ''} sem agendamentos para este dia
-                  </p>
-                </div>
-
+                <h3 className="mb-4 text-xl font-bold text-gray-900">
+                  VEÍCULOS DISPONÍVEIS ({veiculosDisponiveis.length})
+                </h3>
+                
                 {veiculosDisponiveis.length === 0 ? (
-                  <div className="rounded-xl border-2 border-emerald-300 bg-white p-12 text-center shadow-md">
-                    <p className="text-lg font-medium text-gray-700">
-                      Todos os veículos possuem agendamentos para o dia selecionado
-                    </p>
+                  <div className="rounded border border-gray-300 bg-gray-50 p-6 text-center">
+                    <p className="text-gray-600">Todos os veículos possuem agendamentos para este dia</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {veiculosDisponiveis.map(({ veiculo, disponibilidade }) => (
-                      <div
-                        key={veiculo.id}
-                        className="rounded-lg border-2 border-emerald-200 bg-white p-5 shadow-md hover:shadow-lg transition-shadow"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-bold text-emerald-900 mb-1">
-                              {veiculo.modelo}
-                            </h3>
-                            <p className="text-sm font-semibold text-gray-700">
-                              Placa: <span className="font-mono text-gray-900">{veiculo.placa}</span>
+                      <div key={veiculo.id} className="rounded border border-green-200 bg-green-50 p-3">
+                        <div className="mb-2 flex items-center justify-between">
+                          <div>
+                            <h4 className="text-base font-bold text-gray-900">{veiculo.modelo}</h4>
+                            <p className="text-xs text-gray-700">
+                              <span className="font-semibold">Placa:</span> {veiculo.placa}
                             </p>
                           </div>
-                          <span className="ml-3 inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border-2 border-emerald-300 uppercase">
-                            Disponível
+                          <span className="rounded bg-green-200 px-2 py-1 text-xs font-bold text-green-900">
+                            DISPONÍVEL
                           </span>
                         </div>
-                        <p className="text-sm text-emerald-700 italic border-t border-emerald-100 pt-3 mt-3">
+                        <p className="text-xs text-gray-600 border-t border-green-200 pt-2 mt-2">
                           {disponibilidade}
                         </p>
                       </div>
