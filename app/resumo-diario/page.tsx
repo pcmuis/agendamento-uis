@@ -156,8 +156,8 @@ export default function ResumoDiarioPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [erroDownload, setErroDownload] = useState<string | null>(null);
-  const agendadosRef = useRef<HTMLDivElement>(null);
-  const disponiveisRef = useRef<HTMLDivElement>(null);
+  const agendadosRef = useRef<HTMLElement>(null);
+  const disponiveisRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -244,11 +244,22 @@ export default function ResumoDiarioPage() {
 
   const baixarAgendados = useCallback(async () => {
     if (!agendadosRef.current) {
+      setErroDownload('Elemento não encontrado. Tente recarregar a página.');
       return;
     }
 
     try {
       setErroDownload(null);
+      
+      // Aguarda o próximo frame para garantir que o elemento esteja totalmente renderizado
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      
+      // Garante que o elemento esteja visível na tela
+      agendadosRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+      
+      // Aguarda um pouco mais para garantir que o scroll seja aplicado
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      
       const dataFormatada = format(dataBase, 'yyyy-MM-dd');
       await downloadElementAsPng(agendadosRef.current, `resumo-agendados-${dataFormatada}.png`, {
         backgroundColor: '#ffffff',
@@ -262,11 +273,22 @@ export default function ResumoDiarioPage() {
 
   const baixarDisponiveis = useCallback(async () => {
     if (!disponiveisRef.current) {
+      setErroDownload('Elemento não encontrado. Tente recarregar a página.');
       return;
     }
 
     try {
       setErroDownload(null);
+      
+      // Aguarda o próximo frame para garantir que o elemento esteja totalmente renderizado
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      
+      // Garante que o elemento esteja visível na tela
+      disponiveisRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+      
+      // Aguarda um pouco mais para garantir que o scroll seja aplicado
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      
       const dataFormatada = format(dataBase, 'yyyy-MM-dd');
       await downloadElementAsPng(disponiveisRef.current, `resumo-disponiveis-${dataFormatada}.png`, {
         backgroundColor: '#ffffff',
