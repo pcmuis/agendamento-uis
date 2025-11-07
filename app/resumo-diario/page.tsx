@@ -28,6 +28,28 @@ const formatarHora = (date: Date | null) => {
   return format(date, 'HH:mm', { locale: ptBR });
 };
 
+const formatarIntervaloComRetorno = (
+  saidaDate: Date | null,
+  chegadaDate: Date | null,
+) => {
+  const inicio = formatarHora(saidaDate);
+  const fim = formatarHora(chegadaDate);
+
+  if (!saidaDate || !chegadaDate) {
+    return `${inicio} – ${fim}`;
+  }
+
+  const mesmoDia = format(saidaDate, 'yyyy-MM-dd') === format(chegadaDate, 'yyyy-MM-dd');
+
+  if (mesmoDia) {
+    return `${inicio} – ${fim}`;
+  }
+
+  const dataRetorno = format(chegadaDate, "dd/MM 'às' HH:mm", { locale: ptBR });
+
+  return `${inicio} – ${fim} (retorno em ${dataRetorno})`;
+};
+
 const ocorreNoDia = (agendamento: AgendamentoNormalizado, dia: Date) => {
   const startDay = startOfDay(dia);
   const endDay = endOfDay(dia);
@@ -454,7 +476,10 @@ export default function ResumoDiarioPage() {
                                   <div>
                                     <p className="text-xs font-semibold uppercase text-gray-500">Horário</p>
                                     <p className="text-base font-bold text-gray-900">
-                                      {formatarHora(agendamento.saidaDate)} – {formatarHora(agendamento.chegadaDate)}
+                                      {formatarIntervaloComRetorno(
+                                        agendamento.saidaDate,
+                                        agendamento.chegadaDate,
+                                      )}
                                     </p>
                                   </div>
                                   <div>
