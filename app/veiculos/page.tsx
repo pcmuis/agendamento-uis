@@ -6,7 +6,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { getDb } from '@/app/lib/firebase';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SidebarMenu from '../components/SidebarMenu';
-import { FiEdit2, FiTrash2, FiPlus, FiCheck, FiX, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiPlus, FiCheck, FiX, FiArrowUp, FiArrowDown, FiCopy } from 'react-icons/fi';
 
 export default function VeiculosPage() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
@@ -22,6 +22,7 @@ export default function VeiculosPage() {
     coluna: 'placa',
     direcao: 'asc',
   });
+  const [baseUrl, setBaseUrl] = useState('');
 
   const carregarVeiculos = async () => {
     setCarregando(true);
@@ -40,6 +41,35 @@ export default function VeiculosPage() {
   useEffect(() => {
     carregarVeiculos();
   }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setBaseUrl(window.location.origin);
+    }
+  }, []);
+
+  const gerarLinkAcesso = (veiculoId: string) => {
+    const origem = baseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+    if (!origem) return '';
+    return `${origem}/veiculos/${veiculoId}/acesso`;
+  };
+
+  const handleCopiarLink = async (veiculoId: string) => {
+    const link = gerarLinkAcesso(veiculoId);
+    if (!link) return;
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link);
+        alert('Link copiado para a área de transferência!');
+      } else {
+        window.prompt('Copie o link de acesso do veículo', link);
+      }
+    } catch (error) {
+      console.error('Erro ao copiar link:', error);
+      setErro('Não foi possível copiar o link. Tente novamente.');
+    }
+  };
 
   const validarEntrada = (dados: Omit<Veiculo, 'id'>) => {
     if (!dados.placa || !dados.modelo) {
@@ -277,19 +307,18 @@ export default function VeiculosPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
                 <h3 className="mt-2 text-lg font-medium text-gray-900">Nenhum veículo cadastrado</h3>
-                <p className="mt-1 text-gray-500">Clique Совета
-
-System: em "Novo Veículo" para começar</p>
+                <p className="mt-1 text-gray-500">Clique em "Novo Veículo" para começar</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      {[
+                      {[ 
                         { nome: 'Placa', coluna: 'placa' as keyof Veiculo },
                         { nome: 'Modelo', coluna: 'modelo' as keyof Veiculo },
                         { nome: 'Disponível', coluna: 'disponivel' as keyof Veiculo },
+                        { nome: 'Link de acesso', coluna: '' },
                         { nome: 'Ações', coluna: '' },
                       ].map((col) => (
                         <th
@@ -326,6 +355,19 @@ System: em "Novo Veículo" para começar</p>
                           }`}>
                             {v.disponivel ? 'Disponível' : 'Indisponível'}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => v.id && handleCopiarLink(v.id)}
+                              className="inline-flex items-center gap-2 text-green-700 hover:text-green-900 font-medium"
+                              title="Copiar link de acesso do motorista"
+                            >
+                              <FiCopy size={16} />
+                              Copiar link
+                            </button>
+                            <span className="text-xs text-gray-500">Link público para confirmar ou cancelar</span>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex space-x-3">
