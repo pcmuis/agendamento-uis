@@ -53,15 +53,16 @@ export async function buscarAgendamentosPorVeiculoEMatricula(
     getAgendamentosCollection(),
     where('veiculoId', '==', veiculoId),
     where('matricula', '==', matriculaNormalizada),
-    where('concluido', '==', false),
   );
 
   const snapshot = await getDocs(filtro);
 
-  return snapshot.docs.map((registro) => ({
+  const agendamentos = snapshot.docs.map((registro) => ({
     id: registro.id,
     ...registro.data(),
   })) as Agendamento[];
+
+  return agendamentos.filter((agendamento) => agendamento.concluido !== true);
 }
 
 export async function atualizarAgendamento(id: string, dados: any) {
