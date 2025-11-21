@@ -53,6 +53,7 @@ export async function buscarAgendamentosPorVeiculoEMatricula(
     getAgendamentosCollection(),
     where('veiculoId', '==', veiculoId),
     where('matricula', '==', matriculaNormalizada),
+    where('concluido', '==', false),
   );
 
   const snapshot = await getDocs(filtro);
