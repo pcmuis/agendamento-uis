@@ -6,7 +6,15 @@ import SidebarMenu from '../components/SidebarMenu';
 import { listarAgendamentos, listarVeiculosComStatus } from '@/app/lib/veiculos';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import type { Formats, View } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, subWeeks, subMonths } from 'date-fns';
+import {
+  endOfDay,
+  format,
+  parse,
+  startOfDay,
+  startOfWeek,
+  getDay,
+  subDays,
+} from 'date-fns';
 import type { Locale } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -54,7 +62,7 @@ export default function AdministracaoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rankingType, setRankingType] = useState<'motoristas' | 'veiculos'>('motoristas');
-  const [rankingPeriod, setRankingPeriod] = useState<'semanal' | 'mensal'>('semanal');
+  const [rankingPeriod, setRankingPeriod] = useState<'diario' | 'semanal' | 'mensal'>('semanal');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState<'resumo' | 'calendario'>('resumo');
   const [calendarView, setCalendarView] = useState<View>('week');
@@ -126,10 +134,19 @@ export default function AdministracaoPage() {
   );
 
   const getRanking = () => {
-    const startDate = rankingPeriod === 'semanal' ? subWeeks(new Date(), 1) : subMonths(new Date(), 1);
-    const filteredAgendamentos = agendamentos.filter(
-      (ag) => new Date(ag.saida) >= startDate && !ag.concluido
-    );
+    const now = new Date();
+    const startDate = {
+      diario: startOfDay(now),
+      semanal: startOfDay(subDays(now, 6)),
+      mensal: startOfDay(subDays(now, 29)),
+    }[rankingPeriod];
+
+    const endDate = endOfDay(now);
+
+    const filteredAgendamentos = agendamentos.filter((ag) => {
+      const saidaDate = new Date(ag.saida);
+      return saidaDate >= startDate && saidaDate <= endDate;
+    });
 
     let ranking: RankingItem[] = [];
 
@@ -188,21 +205,19 @@ export default function AdministracaoPage() {
   );
 
   const getChartData = () => {
-    const period = rankingPeriod === 'semanal' ? 7 : 30;
+    const period = rankingPeriod === 'mensal' ? 30 : rankingPeriod === 'semanal' ? 7 : 1;
     const data = [];
-    const hoje = new Date();
+    const hoje = endOfDay(new Date());
 
     for (let i = 0; i < period; i++) {
-      const date = new Date(hoje);
-      date.setDate(hoje.getDate() + i);
+      const date = subDays(hoje, period - 1 - i);
 
       const agendamentosDia = agendamentos.filter((ag) => {
         const agDate = new Date(ag.saida);
         return (
           agDate.getDate() === date.getDate() &&
           agDate.getMonth() === date.getMonth() &&
-          agDate.getFullYear() === date.getFullYear() &&
-          !ag.concluido
+          agDate.getFullYear() === date.getFullYear()
         );
       }).length;
 
@@ -386,7 +401,13 @@ export default function AdministracaoPage() {
               {/* Gráfico e Agendamentos */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Agendamentos da semana</h2>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
+                    {rankingPeriod === 'mensal'
+                      ? 'Agendamentos do mês'
+                      : rankingPeriod === 'semanal'
+                        ? 'Agendamentos da semana'
+                        : 'Agendamentos do dia'}
+                  </h2>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={chartData}>
@@ -486,10 +507,11 @@ export default function AdministracaoPage() {
                     </select>
                     <select
                       value={rankingPeriod}
-                      onChange={(e) => setRankingPeriod(e.target.value as 'semanal' | 'mensal')}
+                      onChange={(e) => setRankingPeriod(e.target.value as 'diario' | 'semanal' | 'mensal')}
                       className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 w-full"
                       aria-label="Período do ranking"
                     >
+                      <option value="diario">Diário</option>
                       <option value="semanal">Semanal</option>
                       <option value="mensal">Mensal</option>
                     </select>
