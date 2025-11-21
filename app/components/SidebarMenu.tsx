@@ -46,6 +46,11 @@ const menuItems = [
     label: 'Histórico de Veículos',
     icon: 'M8 16h8m-4-4v8m8-8a8 8 0 11-16 0 8 8 0 0116 0z',
   },
+  {
+    href: '/documentacao',
+    label: 'Documentação da API',
+    icon: 'M4 6h16M4 10h16M4 14h10m4 0l-2 2m2-2l-2-2',
+  },
 ];
 
 export default function SidebarMenu({ className = '', onNavigate }: SidebarMenuProps) {
