@@ -1,10 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SidebarMenu from '../components/SidebarMenu';
-
-const BASE_URL = 'https://api.uis-agendamentos.com/v1';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -385,6 +383,13 @@ export default function ApiDocumentationPage() {
   const [methodFilter, setMethodFilter] = useState<HttpMethod | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [copied, setCopied] = useState(false);
+  const [baseUrl, setBaseUrl] = useState('http://localhost:3000');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setBaseUrl(window.location.origin);
+    }
+  }, []);
 
   const totalEndpoints = useMemo(
     () => apiCatalog.reduce((acc, category) => acc + category.endpoints.length, 0),
@@ -413,7 +418,7 @@ export default function ApiDocumentationPage() {
 
   const handleCopyBaseUrl = async () => {
     try {
-      await navigator.clipboard.writeText(BASE_URL);
+      await navigator.clipboard.writeText(baseUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch (error) {
@@ -440,7 +445,8 @@ export default function ApiDocumentationPage() {
                   <h1 className="text-3xl md:text-4xl font-extrabold">Documentação interativa</h1>
                   <p className="text-white/90 max-w-2xl">
                     Visualize todos os endpoints do sistema em um painel inspirado no Postman, com separação por categorias,
-                    exemplos de payload e filtros rápidos.
+                    exemplos de payload e filtros rápidos. Esta página está acessível pelo menu lateral &ldquo;Documentação da
+                    API&rdquo; (/documentacao) dentro do próprio painel.
                   </p>
 
                   <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -450,7 +456,7 @@ export default function ApiDocumentationPage() {
                       onClick={handleCopyBaseUrl}
                       className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-green-800 shadow hover:bg-white"
                     >
-                      <span>{BASE_URL}</span>
+                      <span>{baseUrl}</span>
                       <span className="text-xs uppercase tracking-wide">{copied ? 'Copiado!' : 'Copiar'}</span>
                     </button>
                   </div>
@@ -474,6 +480,26 @@ export default function ApiDocumentationPage() {
                     <p className="text-2xl font-bold">Sim</p>
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <section className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <div className="rounded-2xl border border-green-100 bg-white p-5 shadow-sm lg:col-span-2">
+                <h2 className="text-lg font-semibold text-gray-900">Como acessar a documentação</h2>
+                <p className="mt-2 text-sm text-gray-700">
+                  A documentação vive dentro do mesmo sistema do painel. Basta abrir o menu lateral e clicar em
+                  <strong> Documentação da API</strong> ou acessar diretamente <code className="rounded bg-gray-100 px-1">/documentacao</code>.
+                  Os endpoints listados abaixo usam o mesmo domínio do aplicativo; basta acrescentar os caminhos abaixo após a
+                  URL base exibida.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-green-100 bg-white p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-gray-900">Dica rápida</h3>
+                <p className="mt-2 text-sm text-gray-700">
+                  Copie a URL base acima (padrão: domínio atual) e use os endpoints a seguir. Como a API roda junto com o
+                  front-end, não é necessário outro host ou porta.
+                </p>
               </div>
             </section>
 
