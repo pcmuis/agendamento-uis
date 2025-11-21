@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { getDb } from '@/app/lib/firebase';
 
 export interface Agendamento {
@@ -37,6 +37,32 @@ export async function listarAgendamentos(): Promise<Agendamento[]> {
     console.error('Erro ao listar agendamentos:', error);
     throw new Error('Falha ao buscar agendamentos no Firebase');
   }
+}
+
+export async function buscarAgendamentosPorVeiculoEMatricula(
+  veiculoId: string,
+  matricula: string,
+): Promise<Agendamento[]> {
+  const matriculaNormalizada = matricula.trim();
+
+  if (!veiculoId || !matriculaNormalizada) {
+    return [];
+  }
+
+  const filtro = query(
+    getAgendamentosCollection(),
+    where('veiculoId', '==', veiculoId),
+    where('matricula', '==', matriculaNormalizada),
+  );
+
+  const snapshot = await getDocs(filtro);
+
+  const agendamentos = snapshot.docs.map((registro) => ({
+    id: registro.id,
+    ...registro.data(),
+  })) as Agendamento[];
+
+  return agendamentos.filter((agendamento) => agendamento.concluido !== true);
 }
 
 export async function atualizarAgendamento(id: string, dados: any) {

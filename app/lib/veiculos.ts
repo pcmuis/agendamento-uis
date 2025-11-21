@@ -5,6 +5,7 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  getDoc,
 } from 'firebase/firestore';
 import { getDb } from './firebase';
 
@@ -59,6 +60,24 @@ export async function listarVeiculos(): Promise<Veiculo[]> {
     console.error('Erro ao listar veículos:', error);
     throw new Error('Falha ao carregar veículos');
   }
+}
+
+export async function buscarVeiculoPorId(id: string): Promise<Veiculo | null> {
+  if (!id) return null;
+
+  const docRef = doc(getDb(), 'veiculos', id);
+  const snapshot = await getDoc(docRef);
+
+  if (!snapshot.exists()) return null;
+
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+    placa: data.placa || '',
+    modelo: data.modelo || '',
+    disponivel: data.disponivel !== false,
+  };
 }
 
 export async function listarAgendamentos(): Promise<Agendamento[]> {
