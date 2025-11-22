@@ -31,6 +31,7 @@ export interface Agendamento {
   telefone?: string;
   observacoes?: string;
   concluido?: boolean;
+  cancelado?: boolean;
 }
 
 const getVeiculosCollection = () => collection(getDb(), 'veiculos');
@@ -101,6 +102,7 @@ export async function listarAgendamentos(): Promise<Agendamento[]> {
           telefone: data.telefone || '',
           observacoes: data.observacoes || '',
           concluido: data.concluido || false,
+          cancelado: data.cancelado || false,
         } as Agendamento;
       })
       .filter((agendamento): agendamento is Agendamento => agendamento !== null);
@@ -168,7 +170,8 @@ export async function listarVeiculosComStatus(dataSaida: string): Promise<Veicul
           agendamento.veiculoId === veiculo.id &&
           new Date(dataSaida) >= new Date(agendamento.saida) &&
           new Date(dataSaida) <= new Date(agendamento.chegada) &&
-          !agendamento.concluido,
+          !agendamento.concluido &&
+          !agendamento.cancelado,
       );
 
       return {

@@ -1,7 +1,11 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { buscarAgendamentosPorVeiculoEMatricula, Agendamento } from '@/app/lib/agendamentos';
+import {
+  buscarAgendamentosPorVeiculoEMatricula,
+  atualizarAgendamento,
+  Agendamento,
+} from '@/app/lib/agendamentos';
 import { buscarVeiculoPorId, Veiculo } from '@/app/lib/veiculos';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -18,6 +22,7 @@ export function AgendamentoVeiculoClient({ veiculoId }: ClientProps) {
   const [carregandoBusca, setCarregandoBusca] = useState(false);
   const [selecionado, setSelecionado] = useState<string>('');
   const [erro, setErro] = useState('');
+  const [cancelando, setCancelando] = useState(false);
 
   useEffect(() => {
     const carregarVeiculo = async () => {
@@ -49,6 +54,16 @@ export function AgendamentoVeiculoClient({ veiculoId }: ClientProps) {
     () => agendamentos.find((agendamento) => agendamento.id === selecionado),
     [agendamentos, selecionado],
   );
+
+  const getStatusAgendamento = (agendamento: Agendamento) => {
+    if (agendamento.cancelado) {
+      return { label: 'Cancelado', classe: 'bg-red-100 text-red-800' } as const;
+    }
+    if (agendamento.concluido) {
+      return { label: 'Concluído', classe: 'bg-gray-100 text-gray-700' } as const;
+    }
+    return { label: 'Em andamento', classe: 'bg-emerald-100 text-emerald-800' } as const;
+  };
 
   const handleBuscar = async (event?: FormEvent) => {
     event?.preventDefault();
@@ -89,9 +104,23 @@ export function AgendamentoVeiculoClient({ veiculoId }: ClientProps) {
     toast.success('Confirmação registrada! (ação visual por enquanto)');
   };
 
-  const handleCancelarAgendamento = () => {
-    if (!exigirSelecao()) return;
-    toast.info('Cancelamento disponível em breve.');
+  const handleCancelarAgendamento = async () => {
+    if (!exigirSelecao() || !agendamentoSelecionado) return;
+
+    if (!confirm('Deseja realmente cancelar este agendamento?')) return;
+
+    try {
+      setCancelando(true);
+      await atualizarAgendamento(agendamentoSelecionado.id, { cancelado: true, concluido: false });
+      toast.success('Agendamento cancelado com sucesso.');
+      setAgendamentos((lista) => lista.filter((item) => item.id !== agendamentoSelecionado.id));
+      setSelecionado('');
+    } catch (error) {
+      console.error('Erro ao cancelar agendamento:', error);
+      toast.error('Não foi possível cancelar o agendamento.');
+    } finally {
+      setCancelando(false);
+    }
   };
 
   return (
@@ -197,13 +226,14 @@ export function AgendamentoVeiculoClient({ veiculoId }: ClientProps) {
                         <p className="text-lg font-semibold text-gray-900">{agendamento.destino}</p>
                       </div>
                     </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        agendamento.concluido ? 'bg-gray-100 text-gray-700' : 'bg-emerald-100 text-emerald-800'
-                      }`}
-                    >
-                      {agendamento.concluido ? 'Concluído' : 'Em andamento'}
-                    </span>
+                    {(() => {
+                      const status = getStatusAgendamento(agendamento);
+                      return (
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${status.classe}`}>
+                          {status.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-700">
                     <div>
@@ -226,9 +256,10 @@ export function AgendamentoVeiculoClient({ veiculoId }: ClientProps) {
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
               <button
                 onClick={handleCancelarAgendamento}
-                className="w-full sm:w-auto rounded-lg border border-red-200 px-4 py-2 text-red-700 font-semibold hover:bg-red-50 transition"
+                disabled={cancelando}
+                className="w-full sm:w-auto rounded-lg border border-red-200 px-4 py-2 text-red-700 font-semibold hover:bg-red-50 transition disabled:opacity-60"
               >
-                Cancelar agendamento
+                {cancelando ? 'Cancelando...' : 'Cancelar agendamento'}
               </button>
               <button
                 onClick={handleConfirmarSaida}
@@ -237,7 +268,7 @@ export function AgendamentoVeiculoClient({ veiculoId }: ClientProps) {
                 Confirmar saída
               </button>
             </div>
-            <p className="text-xs text-gray-500">As ações são apenas visuais nesta etapa inicial.</p>
+            <p className="text-xs text-gray-500">O cancelamento é efetivado no sistema; a confirmação de saída ainda é apenas visual.</p>
           </section>
         )}
       </div>

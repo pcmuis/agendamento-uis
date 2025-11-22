@@ -38,6 +38,7 @@ export default function GerenciarAgendamentosPage() {
     destino: '',
     observacoes: '',
     concluido: false,
+    cancelado: false,
     codigo: '',
     nomeAgendador: '', //
   });
@@ -47,7 +48,7 @@ export default function GerenciarAgendamentosPage() {
     direcao: 'asc',
   });
   const [carregando, setCarregando] = useState(true);
-  const [filtroStatus, setFiltroStatus] = useState<'todos' | 'ativos' | 'concluidos'>('ativos');
+  const [filtroStatus, setFiltroStatus] = useState<'todos' | 'ativos' | 'concluidos' | 'cancelados'>('ativos');
   const [codigoFiltro, setCodigoFiltro] = useState<string>('');
   const [linhasExpandidas, setLinhasExpandidas] = useState<Set<string>>(() => new Set());
 
@@ -185,6 +186,7 @@ export default function GerenciarAgendamentosPage() {
       destino: '',
       observacoes: '',
       concluido: false,
+      cancelado: false,
       codigo: '',
       nomeAgendador: '',
     });
@@ -236,6 +238,7 @@ export default function GerenciarAgendamentosPage() {
       destino: agendamento.destino,
       observacoes: agendamento.observacoes || '',
       concluido: agendamento.concluido,
+      cancelado: agendamento.cancelado || false,
       codigo: agendamento.codigo || '',
     });
     setErro('');
@@ -257,6 +260,7 @@ export default function GerenciarAgendamentosPage() {
     const saida = new Date(agendamento.saida);
 
     if (!isValid(saida) || !isValid(chegada)) return 'Inválido';
+    if (agendamento.cancelado) return 'Cancelado';
     if (agendamento.concluido) return 'Concluído';
     if (saida <= agora && chegada >= agora) return 'Em Uso';
     if (chegada < agora) return 'Atrasado';
@@ -273,6 +277,8 @@ export default function GerenciarAgendamentosPage() {
         return 'bg-green-100 text-green-800';
       case 'Concluído':
         return 'bg-gray-100 text-gray-800';
+      case 'Cancelado':
+        return 'bg-red-100 text-red-800';
       case 'Inválido':
         return 'bg-yellow-100 text-yellow-800';
       default:
@@ -283,8 +289,9 @@ export default function GerenciarAgendamentosPage() {
   const agendamentosFiltrados = agendamentos
     .filter((ag) => {
       if (!codigoFiltro) {
-        if (filtroStatus === 'ativos') return !ag.concluido;
+        if (filtroStatus === 'ativos') return !ag.concluido && !ag.cancelado;
         if (filtroStatus === 'concluidos') return ag.concluido;
+        if (filtroStatus === 'cancelados') return ag.cancelado;
         return true;
       }
       const termo = codigoFiltro.trim().toLowerCase();
@@ -441,12 +448,15 @@ export default function GerenciarAgendamentosPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <select
                     value={filtroStatus}
-                    onChange={(e) => setFiltroStatus(e.target.value as 'todos' | 'ativos' | 'concluidos')}
+                    onChange={(e) =>
+                      setFiltroStatus(e.target.value as 'todos' | 'ativos' | 'concluidos' | 'cancelados')
+                    }
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
                   >
                     <option value="todos">Todos</option>
                     <option value="ativos">Ativos</option>
                     <option value="concluidos">Concluídos</option>
+                    <option value="cancelados">Cancelados</option>
                   </select>
                 </div>
               </div>
@@ -612,7 +622,7 @@ export default function GerenciarAgendamentosPage() {
                                       />
                                     </svg>
                                   </button>
-                                  {!ag.concluido && (
+                                  {!ag.concluido && !ag.cancelado && (
                                     <button
                                       onClick={() => handleConcluir(ag.id)}
                                       className="text-blue-600 hover:text-blue-900"
