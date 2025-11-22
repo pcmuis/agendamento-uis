@@ -12,6 +12,7 @@ export interface Agendamento {
   destino: string;
   observacoes: string;
   concluido: boolean;
+  cancelado?: boolean;
   codigo?: string; // Número do comprovante
   nomeAgendador?: string; // Novo campo para responsável pelo agendamento
 }
@@ -32,6 +33,7 @@ export async function listarAgendamentos(): Promise<Agendamento[]> {
     return snapshot.docs.map((registro) => ({
       id: registro.id,
       ...registro.data(),
+      cancelado: (registro.data() as Agendamento).cancelado || false,
     })) as Agendamento[];
   } catch (error) {
     console.error('Erro ao listar agendamentos:', error);
@@ -60,9 +62,12 @@ export async function buscarAgendamentosPorVeiculoEMatricula(
   const agendamentos = snapshot.docs.map((registro) => ({
     id: registro.id,
     ...registro.data(),
+    cancelado: (registro.data() as Agendamento).cancelado || false,
   })) as Agendamento[];
 
-  return agendamentos.filter((agendamento) => agendamento.concluido !== true);
+  return agendamentos.filter(
+    (agendamento) => agendamento.concluido !== true && agendamento.cancelado !== true,
+  );
 }
 
 export async function atualizarAgendamento(id: string, dados: any) {

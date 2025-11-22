@@ -40,6 +40,7 @@ interface Agendamento {
   telefone?: string;
   observacoes?: string;
   concluido?: boolean;
+  cancelado?: boolean;
 }
 
 interface Veiculo {
@@ -101,7 +102,8 @@ export default function AdministracaoPage() {
       saida.getDate() === hoje.getDate() &&
       saida.getMonth() === hoje.getMonth() &&
       saida.getFullYear() === hoje.getFullYear() &&
-      !ag.concluido
+      !ag.concluido &&
+      !ag.cancelado
     );
   });
 
@@ -112,7 +114,8 @@ export default function AdministracaoPage() {
         saida.getDate() === hoje.getDate() &&
         saida.getMonth() === hoje.getMonth() &&
         saida.getFullYear() === hoje.getFullYear() &&
-        !ag.concluido
+        !ag.concluido &&
+        !ag.cancelado
       );
     });
 
@@ -145,7 +148,7 @@ export default function AdministracaoPage() {
 
     const filteredAgendamentos = agendamentos.filter((ag) => {
       const saidaDate = new Date(ag.saida);
-      return saidaDate >= startDate && saidaDate <= endDate;
+      return saidaDate >= startDate && saidaDate <= endDate && !ag.cancelado;
     });
 
     let ranking: RankingItem[] = [];
@@ -806,9 +809,13 @@ export default function AdministracaoPage() {
                 popup
                 eventPropGetter={(event) => ({
                   style: {
-                    backgroundColor: event.resource.concluido ? '#6B7280' : '#10B981',
+                    backgroundColor: event.resource.cancelado
+                      ? '#DC2626'
+                      : event.resource.concluido
+                        ? '#6B7280'
+                        : '#10B981',
                     borderRadius: '0.75rem',
-                    border: '1px solid #0f766e',
+                    border: `1px solid ${event.resource.cancelado ? '#B91C1C' : '#0f766e'}`,
                     color: '#ffffff',
                     padding: '6px 10px',
                   },

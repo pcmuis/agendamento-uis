@@ -126,7 +126,13 @@ export default function AgendarPage() {
       const agendamentosSnap = await getDocs(colAgendamentos);
       const agendamentos = agendamentosSnap.docs.map((doc) => ({
         id: doc.id,
-        ...(doc.data() as { veiculoId: string; saida: string; chegada: string; concluido: boolean }),
+        ...(doc.data() as {
+          veiculoId: string;
+          saida: string;
+          chegada: string;
+          concluido: boolean;
+          cancelado?: boolean;
+        }),
       }));
 
       const novasDatasMaximas: { [key: string]: string } = {};
@@ -136,6 +142,7 @@ export default function AgendarPage() {
             (ag) =>
               ag.veiculoId === veiculo.id &&
               !ag.concluido &&
+              !ag.cancelado &&
               new Date(ag.saida) >= new Date(dados.saida)
           )
           .sort((a, b) => new Date(a.saida).getTime() - new Date(b.saida).getTime());
@@ -274,11 +281,17 @@ export default function AgendarPage() {
     const agendamentosSnap = await getDocs(colAgendamentos);
     const agendamentos = agendamentosSnap.docs.map((doc) => ({
       id: doc.id,
-      ...(doc.data() as { veiculoId: string; saida: string; chegada: string; concluido: boolean }),
+      ...(doc.data() as {
+        veiculoId: string;
+        saida: string;
+        chegada: string;
+        concluido: boolean;
+        cancelado?: boolean;
+      }),
     }));
 
     const agendamentoConflitante = agendamentos.find((ag) => {
-      if (ag.veiculoId !== dados.veiculoId || ag.concluido) return false;
+      if (ag.veiculoId !== dados.veiculoId || ag.concluido || ag.cancelado) return false;
       const novaSaida = new Date(dados.saida);
       const novaChegada = new Date(dados.chegada);
       const agSaida = new Date(ag.saida);

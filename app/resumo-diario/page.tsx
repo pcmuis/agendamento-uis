@@ -222,6 +222,7 @@ export default function ResumoDiarioPage() {
 
     const resumo = veiculos.map((veiculo) => {
       const agendamentosDoVeiculo = agendamentos
+        .filter((agendamento) => !agendamento.cancelado)
         .filter((agendamento) => agendamento.veiculoId === veiculo.id)
         .filter((agendamento) => ocorreNoDia(agendamento, dataBase))
         .sort((a, b) => {
