@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { listarVeiculos, criarVeiculo, removerVeiculo, atualizarVeiculo, Veiculo } from '@/app/lib/veiculos';
+import { listarChecklists, ChecklistModelo } from '@/app/lib/checklists';
 import { collection, getDocs } from 'firebase/firestore';
 import { getDb } from '@/app/lib/firebase';
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -10,11 +11,13 @@ import { FiEdit2, FiTrash2, FiPlus, FiCheck, FiX, FiArrowUp, FiArrowDown, FiCopy
 
 export default function VeiculosPage() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
+  const [checklists, setChecklists] = useState<ChecklistModelo[]>([]);
   const [formAberto, setFormAberto] = useState<'novo' | 'editar' | null>(null);
   const [dadosForm, setDadosForm] = useState<Omit<Veiculo, 'id'> & { id?: string }>({
     placa: '',
     modelo: '',
     disponivel: true,
+    checklistId: '',
   });
   const [erro, setErro] = useState<string>('');
   const [carregando, setCarregando] = useState<boolean>(true);
@@ -38,8 +41,18 @@ export default function VeiculosPage() {
     }
   };
 
+  const carregarChecklists = async () => {
+    try {
+      const lista = await listarChecklists();
+      setChecklists(lista);
+    } catch (error) {
+      console.error('Erro ao carregar checklists:', error);
+    }
+  };
+
   useEffect(() => {
     carregarVeiculos();
+    carregarChecklists();
   }, []);
 
   useEffect(() => {
@@ -96,6 +109,7 @@ export default function VeiculosPage() {
           placa: dadosForm.placa.toUpperCase(),
           modelo: dadosForm.modelo,
           disponivel: dadosForm.disponivel,
+          checklistId: dadosForm.checklistId,
         });
         alert('Veículo adicionado com sucesso!');
       } else if (formAberto === 'editar' && dadosForm.id) {
@@ -103,10 +117,11 @@ export default function VeiculosPage() {
           placa: dadosForm.placa.toUpperCase(),
           modelo: dadosForm.modelo,
           disponivel: dadosForm.disponivel,
+          checklistId: dadosForm.checklistId,
         });
         alert('Veículo atualizado com sucesso!');
       }
-      setDadosForm({ placa: '', modelo: '', disponivel: true });
+      setDadosForm({ placa: '', modelo: '', disponivel: true, checklistId: '' });
       setFormAberto(null);
       await carregarVeiculos();
     } catch (error) {
@@ -163,6 +178,7 @@ export default function VeiculosPage() {
       placa: veiculo.placa,
       modelo: veiculo.modelo,
       disponivel: veiculo.disponivel,
+      checklistId: veiculo.checklistId || '',
     });
     setFormAberto('editar');
     setErro('');
@@ -190,6 +206,9 @@ export default function VeiculosPage() {
     setVeiculos(veiculosOrdenados);
   };
 
+  const obterNomeChecklist = (checklistId?: string) =>
+    checklists.find((c) => c.id === checklistId)?.nome || '—';
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -201,7 +220,7 @@ export default function VeiculosPage() {
             <button
               onClick={() => {
                 setFormAberto('novo');
-                setDadosForm({ placa: '', modelo: '', disponivel: true });
+                setDadosForm({ placa: '', modelo: '', disponivel: true, checklistId: '' });
                 setErro('');
               }}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
@@ -255,6 +274,23 @@ export default function VeiculosPage() {
                     onChange={(e) => setDadosForm({ ...dadosForm, modelo: e.target.value })}
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Checklist atribuído</label>
+                  <select
+                    value={dadosForm.checklistId}
+                    onChange={(e) => setDadosForm({ ...dadosForm, checklistId: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="">Nenhum checklist</option>
+                    {checklists.map((checklist) => (
+                      <option key={checklist.id} value={checklist.id}>
+                        {checklist.nome}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Selecione o modelo aplicado a este veículo.</p>
                 </div>
                 
                 <div className="flex items-center">
@@ -314,9 +350,10 @@ export default function VeiculosPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      {[ 
+                      {[
                         { nome: 'Placa', coluna: 'placa' as keyof Veiculo },
                         { nome: 'Modelo', coluna: 'modelo' as keyof Veiculo },
+                        { nome: 'Checklist', coluna: '' },
                         { nome: 'Disponível', coluna: 'disponivel' as keyof Veiculo },
                         { nome: 'Link de acesso', coluna: '' },
                         { nome: 'Ações', coluna: '' },
@@ -348,6 +385,9 @@ export default function VeiculosPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {v.modelo}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {obterNomeChecklist(v.checklistId)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${

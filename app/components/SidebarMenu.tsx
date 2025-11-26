@@ -46,6 +46,11 @@ const menuItems = [
     label: 'Histórico de Veículos',
     icon: 'M8 16h8m-4-4v8m8-8a8 8 0 11-16 0 8 8 0 0116 0z',
   },
+  {
+    href: '/checklists',
+    label: 'Modelos de Checklist',
+    icon: 'M5 13l4 4L19 7',
+  },
 ];
 
 export default function SidebarMenu({ className = '', onNavigate }: SidebarMenuProps) {
