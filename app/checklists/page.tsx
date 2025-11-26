@@ -19,6 +19,8 @@ const criarPerguntaVazia = (): ChecklistQuestion => ({
   id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
   texto: '',
   obrigatorio: false,
+  tipoResposta: 'texto',
+  permiteObservacao: false,
 });
 
 export default function ChecklistsPage() {
@@ -315,6 +317,39 @@ export default function ChecklistsPage() {
                               className="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                               placeholder="Descreva a pergunta"
                             />
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700">Tipo de resposta</label>
+                                <select
+                                  value={pergunta.tipoResposta}
+                                  onChange={(e) =>
+                                    atualizarPergunta(
+                                      pergunta.id,
+                                      'tipoResposta',
+                                      e.target.value as ChecklistQuestion['tipoResposta'],
+                                    )
+                                  }
+                                  className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                >
+                                  <option value="texto">Resposta curta</option>
+                                  <option value="numero">Número</option>
+                                  <option value="status">Menu de conformidade (C / NC / NA)</option>
+                                </select>
+                              </div>
+
+                              <div className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
+                                <span>Permitir observação</span>
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(pergunta.permiteObservacao)}
+                                  onChange={(e) =>
+                                    atualizarPergunta(pergunta.id, 'permiteObservacao', e.target.checked)
+                                  }
+                                  className="rounded text-green-600 focus:ring-green-500"
+                                />
+                              </div>
+                            </div>
 
                             <div className="flex items-center justify-between text-sm">
                               <label className="inline-flex items-center gap-2 text-gray-700">

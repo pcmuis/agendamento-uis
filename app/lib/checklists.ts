@@ -5,6 +5,8 @@ export interface ChecklistQuestion {
   id: string;
   texto: string;
   obrigatorio: boolean;
+  tipoResposta: 'texto' | 'numero' | 'status';
+  permiteObservacao?: boolean;
 }
 
 export interface ChecklistModelo {
@@ -32,6 +34,8 @@ export async function listarChecklists(): Promise<ChecklistModelo[]> {
             id: pergunta.id ?? String(index),
             texto: pergunta.texto ?? '',
             obrigatorio: pergunta.obrigatorio ?? false,
+            tipoResposta: pergunta.tipoResposta ?? 'texto',
+            permiteObservacao: pergunta.permiteObservacao ?? false,
           }))
         : [],
       atualizadoEm: data.atualizadoEm ?? '',
