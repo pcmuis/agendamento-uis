@@ -34,6 +34,41 @@ export async function salvarRespostaChecklist(
   return docRef.id;
 }
 
+export async function buscarRespostaMaisRecentePorAgendamento(
+  agendamentoId: string,
+): Promise<ChecklistResposta | null> {
+  if (!agendamentoId) return null;
+
+  const filtro = query(getChecklistsRespostasCollection(), where('agendamentoId', '==', agendamentoId));
+  const snapshot = await getDocs(filtro);
+  if (snapshot.empty) return null;
+
+  const respostas = snapshot.docs.map((registro) => {
+    const data = registro.data();
+    return {
+      id: registro.id,
+      veiculoId: data.veiculoId,
+      agendamentoId: data.agendamentoId,
+      checklistId: data.checklistId,
+      respondidoPorNome: data.respondidoPorNome,
+      respondidoPorMatricula: data.respondidoPorMatricula,
+      respondidoEm: data.respondidoEm,
+      saidaConfirmada: data.saidaConfirmada ?? false,
+      respostas: Array.isArray(data.respostas)
+        ? data.respostas.map((resposta: any) => ({
+            perguntaId: resposta.perguntaId ?? '',
+            perguntaTexto: resposta.perguntaTexto ?? '',
+            tipoResposta: resposta.tipoResposta ?? 'texto',
+            valor: resposta.valor ?? '',
+            observacao: resposta.observacao ?? '',
+          }))
+        : [],
+    } as ChecklistResposta;
+  });
+
+  return respostas.sort((a, b) => new Date(b.respondidoEm).getTime() - new Date(a.respondidoEm).getTime())[0] || null;
+}
+
 export async function listarRespostasPorVeiculo(veiculoId: string): Promise<ChecklistResposta[]> {
   if (!veiculoId) return [];
 

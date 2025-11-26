@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { buscarAgendamentosPorVeiculoEMatricula, Agendamento } from '@/app/lib/agendamentos';
+import { buscarAgendamentosPorVeiculoEMatricula, atualizarAgendamento, Agendamento } from '@/app/lib/agendamentos';
 import { buscarChecklistPorId, ChecklistModelo } from '@/app/lib/checklists';
 import { salvarRespostaChecklist } from '@/app/lib/checklist-respostas';
 import { buscarVeiculoPorId, Veiculo } from '@/app/lib/veiculos';
@@ -154,13 +154,14 @@ export function AgendamentoVeiculoClient({ veiculoId }: ClientProps) {
 
     setSalvandoChecklist(true);
     try {
-      await salvarRespostaChecklist({
+      const respostaId = await salvarRespostaChecklist({
         veiculoId,
         agendamentoId: agendamentoSelecionado.id,
         checklistId: checklist.id,
         respondidoEm: new Date().toISOString(),
         respondidoPorNome: agendamentoSelecionado.motorista,
         respondidoPorMatricula: matricula.trim(),
+        saidaConfirmada: true,
         respostas: checklist.perguntas.map((pergunta) => ({
           perguntaId: pergunta.id,
           perguntaTexto: pergunta.texto,
@@ -172,7 +173,12 @@ export function AgendamentoVeiculoClient({ veiculoId }: ClientProps) {
         })),
       });
 
-      toast.success('Checklist enviado! Aguarde a confirmação da saída.');
+      await atualizarAgendamento(agendamentoSelecionado.id, {
+        saidaConfirmada: true,
+        checklistRespostaId: respostaId,
+      });
+
+      toast.success('Checklist enviado e saída confirmada!');
       setExibindoChecklist(false);
       setChecklist(null);
       setRespostasFormulario({});

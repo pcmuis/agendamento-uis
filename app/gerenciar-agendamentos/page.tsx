@@ -6,6 +6,7 @@ import SidebarMenu from '../components/SidebarMenu';
 import { listarVeiculosComStatus } from '@/app/lib/veiculos';
 import { Agendamento, listarAgendamentos } from '@/app/lib/agendamentos';
 import { criarAgendamento, atualizarAgendamento, excluirAgendamento } from '@/app/lib/agendamentos';
+import { buscarRespostaMaisRecentePorAgendamento, ChecklistResposta } from '@/app/lib/checklist-respostas';
 import { format, isValid } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { ToastContainer, toast } from 'react-toastify';
@@ -13,6 +14,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { collection, getDocs } from 'firebase/firestore';
 import { getDb } from '@/app/lib/firebase';
 import * as XLSX from 'xlsx';
+import { FiEye } from 'react-icons/fi';
 
 export interface Veiculo {
   id: string;
@@ -50,6 +52,10 @@ export default function GerenciarAgendamentosPage() {
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'ativos' | 'concluidos'>('ativos');
   const [codigoFiltro, setCodigoFiltro] = useState<string>('');
   const [linhasExpandidas, setLinhasExpandidas] = useState<Set<string>>(() => new Set());
+  const [respostasPorAgendamento, setRespostasPorAgendamento] = useState<Record<string, ChecklistResposta | null>>({});
+  const [checklistSelecionado, setChecklistSelecionado] = useState<ChecklistResposta | null>(null);
+  const [carregandoChecklist, setCarregandoChecklist] = useState(false);
+  const [erroChecklist, setErroChecklist] = useState('');
 
   const carregarDados = useCallback(async () => {
     try {
@@ -58,8 +64,19 @@ export default function GerenciarAgendamentosPage() {
         listarAgendamentos(),
         listarVeiculosComStatus(new Date().toISOString()),
       ]);
-      setAgendamentos(agendamentosLista.filter(ag => isValid(new Date(ag.saida)) && isValid(new Date(ag.chegada))));
+      const agendamentosValidos = agendamentosLista.filter(
+        (ag) => isValid(new Date(ag.saida)) && isValid(new Date(ag.chegada)),
+      );
+      setAgendamentos(agendamentosValidos);
       setVeiculos(veiculosLista);
+
+      const respostas = await Promise.all(
+        agendamentosValidos.map(async (agendamento) => {
+          const resposta = await buscarRespostaMaisRecentePorAgendamento(agendamento.id);
+          return [agendamento.id, resposta] as const;
+        }),
+      );
+      setRespostasPorAgendamento(Object.fromEntries(respostas));
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       toast.error('Falha ao carregar dados. Tente novamente.');
@@ -383,6 +400,32 @@ export default function GerenciarAgendamentosPage() {
     });
   }, []);
 
+  const abrirChecklist = async (agendamentoId: string) => {
+    setErroChecklist('');
+    setCarregandoChecklist(true);
+    try {
+      const respostaSalva = respostasPorAgendamento[agendamentoId];
+      const resposta = respostaSalva ?? (await buscarRespostaMaisRecentePorAgendamento(agendamentoId));
+
+      if (!resposta) {
+        toast.info('Nenhum checklist preenchido para este agendamento.');
+        return;
+      }
+
+      setChecklistSelecionado(resposta);
+    } catch (error) {
+      console.error('Erro ao abrir checklist:', error);
+      setErroChecklist('Não foi possível carregar o checklist respondido.');
+    } finally {
+      setCarregandoChecklist(false);
+    }
+  };
+
+  const fecharChecklist = () => {
+    setChecklistSelecionado(null);
+    setErroChecklist('');
+  };
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
@@ -555,6 +598,8 @@ export default function GerenciarAgendamentosPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {agendamentosFiltrados.map((ag) => {
                         const status = getStatusAgendamento(ag);
+                        const respostaChecklist = ag.id ? respostasPorAgendamento[ag.id] : null;
+                        const saidaConfirmada = respostaChecklist?.saidaConfirmada || ag.saidaConfirmada;
                         const expandido = ag.id ? linhasExpandidas.has(ag.id) : false;
                         return (
                           <Fragment key={ag.id}>
@@ -581,6 +626,11 @@ export default function GerenciarAgendamentosPage() {
                                   >
                                     {status}
                                   </span>
+                                  {saidaConfirmada && (
+                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 border border-green-200">
+                                      Saída confirmada
+                                    </span>
+                                  )}
                                   <span>{getVeiculoPlaca(ag.veiculoId)}</span>
                                 </div>
                               </td>
@@ -622,6 +672,16 @@ export default function GerenciarAgendamentosPage() {
                                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                       </svg>
+                                    </button>
+                                  )}
+                                  {respostaChecklist && (
+                                    <button
+                                      onClick={() => ag.id && abrirChecklist(ag.id)}
+                                      className="text-indigo-600 hover:text-indigo-900"
+                                      title="Ver checklist respondido"
+                                      disabled={carregando}
+                                    >
+                                      <FiEye className="w-5 h-5" />
                                     </button>
                                   )}
                                   <button
@@ -693,6 +753,11 @@ export default function GerenciarAgendamentosPage() {
                                       >
                                         {status}
                                       </span>
+                                      {saidaConfirmada && (
+                                        <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200 ml-2">
+                                          Saída confirmada
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                   <div>
@@ -709,14 +774,74 @@ export default function GerenciarAgendamentosPage() {
                   </table>
                 </div>
               )}
-              {codigoFiltro && agendamentosFiltrados.length === 0 && (
-                <div className="p-8 text-center text-blue-600 font-medium">
-                  Nenhum agendamento encontrado para o código informado.
-                </div>
-              )}
-            </div>
+            {codigoFiltro && agendamentosFiltrados.length === 0 && (
+              <div className="p-8 text-center text-blue-600 font-medium">
+                Nenhum agendamento encontrado para o código informado.
+              </div>
+            )}
 
-            {/* Formulário de edição/novo agendamento */}
+            {(checklistSelecionado || carregandoChecklist || erroChecklist) && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+                <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 relative">
+                  <button
+                    onClick={fecharChecklist}
+                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                    aria-label="Fechar"
+                  >
+                    ×
+                  </button>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Checklist respondido</h3>
+                  {erroChecklist && (
+                    <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                      {erroChecklist}
+                    </div>
+                  )}
+
+                  {carregandoChecklist ? (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <div className="h-4 w-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                      <span>Carregando checklist...</span>
+                    </div>
+                  ) : checklistSelecionado ? (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">
+                            Respondido em {formatarDataHora(checklistSelecionado.respondidoEm)}
+                          </p>
+                          <p className="font-semibold text-gray-900">
+                            {checklistSelecionado.respondidoPorNome || 'Motorista não informado'} — Matrícula{' '}
+                            {checklistSelecionado.respondidoPorMatricula || 'N/D'}
+                          </p>
+                          <p className="text-xs text-gray-500">Agendamento #{checklistSelecionado.agendamentoId}</p>
+                        </div>
+                        {checklistSelecionado.saidaConfirmada && (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                            Saída confirmada
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {checklistSelecionado.respostas.map((pergunta) => (
+                          <div key={`${checklistSelecionado.id}-${pergunta.perguntaId}`} className="bg-gray-50 rounded-lg p-3 space-y-1">
+                            <p className="text-sm font-semibold text-gray-800">{pergunta.perguntaTexto}</p>
+                            <p className="text-sm text-gray-700">Resposta: {pergunta.valor}</p>
+                            {pergunta.observacao && (
+                              <p className="text-xs text-gray-600">Observação: {pergunta.observacao}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Formulário de edição/novo agendamento */}
             {formAberto && (
               <div className="bg-white p-6 rounded-lg shadow-md border border-green-200 mb-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">
