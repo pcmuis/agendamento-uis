@@ -14,6 +14,8 @@ export interface Agendamento {
   concluido: boolean;
   codigo?: string; // Número do comprovante
   nomeAgendador?: string; // Novo campo para responsável pelo agendamento
+  saidaConfirmada?: boolean;
+  checklistRespostaId?: string;
 }
 
 const getAgendamentosCollection = () => collection(getDb(), 'agendamentos');

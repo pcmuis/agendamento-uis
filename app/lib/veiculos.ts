@@ -14,6 +14,7 @@ export interface Veiculo {
   placa: string;
   modelo: string;
   disponivel: boolean;
+  checklistId?: string;
 }
 
 export interface VeiculoComStatus extends Veiculo {
@@ -51,6 +52,7 @@ export async function listarVeiculos(): Promise<Veiculo[]> {
           placa: data.placa || '',
           modelo: data.modelo || '',
           disponivel: data.disponivel !== false,
+          checklistId: data.checklistId || '',
         } as Veiculo;
       })
       .filter((item): item is Veiculo => item !== null);
@@ -77,6 +79,7 @@ export async function buscarVeiculoPorId(id: string): Promise<Veiculo | null> {
     placa: data.placa || '',
     modelo: data.modelo || '',
     disponivel: data.disponivel !== false,
+    checklistId: data.checklistId || '',
   };
 }
 
@@ -122,6 +125,7 @@ export async function criarVeiculo(dados: Omit<Veiculo, 'id'>): Promise<string> 
       placa: dados.placa.toUpperCase(),
       modelo: dados.modelo,
       disponivel: dados.disponivel !== false,
+      checklistId: dados.checklistId || '',
     });
 
     return docRef.id;
