@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, updateDoc } from 'firebase/firestore';
 import { getDb } from './firebase';
 
 export interface ChecklistQuestion {
@@ -18,6 +18,31 @@ export interface ChecklistModelo {
 }
 
 const getChecklistsCollection = () => collection(getDb(), 'checklists');
+
+export async function buscarChecklistPorId(id: string): Promise<ChecklistModelo | null> {
+  if (!id) return null;
+
+  const registro = await getDoc(doc(getDb(), 'checklists', id));
+  if (!registro.exists()) return null;
+
+  const data = registro.data();
+
+  return {
+    id: registro.id,
+    nome: data.nome ?? 'Checklist sem nome',
+    descricao: data.descricao ?? '',
+    perguntas: Array.isArray(data.perguntas)
+      ? data.perguntas.map((pergunta: any, index: number) => ({
+          id: pergunta.id ?? String(index),
+          texto: pergunta.texto ?? '',
+          obrigatorio: pergunta.obrigatorio ?? false,
+          tipoResposta: pergunta.tipoResposta ?? 'texto',
+          permiteObservacao: pergunta.permiteObservacao ?? false,
+        }))
+      : [],
+    atualizadoEm: data.atualizadoEm ?? '',
+  };
+}
 
 export async function listarChecklists(): Promise<ChecklistModelo[]> {
   const snapshot = await getDocs(getChecklistsCollection());
