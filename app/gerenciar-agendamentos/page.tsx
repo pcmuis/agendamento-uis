@@ -599,7 +599,8 @@ export default function GerenciarAgendamentosPage() {
                       {agendamentosFiltrados.map((ag) => {
                         const status = getStatusAgendamento(ag);
                         const respostaChecklist = ag.id ? respostasPorAgendamento[ag.id] : null;
-                        const saidaConfirmada = respostaChecklist?.saidaConfirmada || ag.saidaConfirmada;
+                        const saidaConfirmada =
+                          !ag.concluido && (respostaChecklist?.saidaConfirmada || ag.saidaConfirmada);
                         const expandido = ag.id ? linhasExpandidas.has(ag.id) : false;
                         return (
                           <Fragment key={ag.id}>
@@ -816,11 +817,18 @@ export default function GerenciarAgendamentosPage() {
                           </p>
                           <p className="text-xs text-gray-500">Agendamento #{checklistSelecionado.agendamentoId}</p>
                         </div>
-                        {checklistSelecionado.saidaConfirmada && (
-                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
-                            Saída confirmada
-                          </span>
-                        )}
+                        {(() => {
+                          const agendamentoRelacionado = agendamentos.find(
+                            (ag) => ag.id === checklistSelecionado.agendamentoId,
+                          );
+                          const deveExibirTag =
+                            checklistSelecionado.saidaConfirmada && !agendamentoRelacionado?.concluido;
+                          return deveExibirTag ? (
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                              Saída confirmada
+                            </span>
+                          ) : null;
+                        })()}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

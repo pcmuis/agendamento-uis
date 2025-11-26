@@ -129,7 +129,6 @@ export default function VeiculosPage() {
     setConfirmandoSaida(resposta.id);
     try {
       await atualizarAgendamento(resposta.agendamentoId, {
-        concluido: true,
         saidaConfirmada: true,
         checklistRespostaId: resposta.id,
       });
