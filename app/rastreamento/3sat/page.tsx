@@ -1,13 +1,68 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Dispositivo3Sat, listarDispositivos } from '@/app/lib/3sat';
+import {
+  Dispositivo3Sat,
+  Posicao3Sat,
+  consultarUltimaPosicao,
+  listarDispositivos,
+} from '@/app/lib/3sat';
 
 type Filtros = {
   termo: string;
   grupo: string;
   local: string;
   somenteOnline: boolean;
+};
+
+type Dispositivo3SatComPosicao = Dispositivo3Sat & {
+  ultimaPosicao?: Posicao3Sat;
+};
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const findFirstArray = <T,>(value: unknown): T[] | null => {
+  if (Array.isArray(value)) return value as T[];
+  if (!isObject(value)) return null;
+
+  for (const key of Object.keys(value)) {
+    const nested = value[key];
+    if (Array.isArray(nested)) return nested as T[];
+  }
+
+  for (const key of Object.keys(value)) {
+    const nested = value[key];
+    if (isObject(nested)) {
+      for (const innerKey of Object.keys(nested)) {
+        const innerValue = nested[innerKey];
+        if (Array.isArray(innerValue)) return innerValue as T[];
+      }
+    }
+  }
+
+  return null;
+};
+
+const normalizarLista = <T,>(value: unknown): T[] => findFirstArray<T>(value) ?? [];
+
+const normalizarDispositivos = (value: unknown): Dispositivo3Sat[] =>
+  normalizarLista<Dispositivo3Sat>(value);
+
+const normalizarPosicoes = (value: unknown): Posicao3Sat[] => {
+  const lista = normalizarLista<Posicao3Sat>(value);
+  if (lista.length > 0) return lista;
+  if (isObject(value)) return [value as Posicao3Sat];
+  return [];
+};
+
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 };
 
 const normalizarTexto = (valor?: string) => (valor || '').toLowerCase();
@@ -19,30 +74,36 @@ const formatarDataHora = (valor?: string) => {
   return data.toLocaleString('pt-BR');
 };
 
-const extrairPlaca = (dispositivo: Dispositivo3Sat) =>
+const extrairPlaca = (dispositivo: Dispositivo3SatComPosicao) =>
   dispositivo.plate ||
+  dispositivo.ultimaPosicao?.plate ||
   dispositivo.deviceGpsDataSingle?.plate ||
   dispositivo.lastDeviceGps?.plate ||
   '-';
 
-const extrairNomeDispositivo = (dispositivo: Dispositivo3Sat) =>
+const extrairNomeDispositivo = (dispositivo: Dispositivo3SatComPosicao) =>
   dispositivo.deviceName ||
   dispositivo.name ||
+  dispositivo.ultimaPosicao?.deviceName ||
   dispositivo.deviceGpsDataSingle?.deviceName ||
   dispositivo.lastDeviceGps?.deviceName ||
   '-';
 
-const extrairGrupo = (dispositivo: Dispositivo3Sat) =>
+const extrairGrupo = (dispositivo: Dispositivo3SatComPosicao) =>
   dispositivo.deviceGroupName || dispositivo.groupName || '-';
 
-const extrairMotorista = (dispositivo: Dispositivo3Sat) =>
+const extrairMotorista = (dispositivo: Dispositivo3SatComPosicao) =>
   dispositivo.driverName ||
+  dispositivo.ultimaPosicao?.driverName ||
   dispositivo.deviceGpsDataSingle?.driverName ||
   dispositivo.lastDeviceGps?.driverName ||
   dispositivo.lastMessage?.driver?.name ||
   '-';
 
-const extrairLocal = (dispositivo: Dispositivo3Sat) => {
+const extrairLocal = (dispositivo: Dispositivo3SatComPosicao) => {
+  const enderecoPosicao =
+    dispositivo.ultimaPosicao?.address || dispositivo.ultimaPosicao?.addressString;
+  const cidadePosicao = dispositivo.ultimaPosicao?.city;
   const enderecoGps =
     dispositivo.deviceGpsDataSingle?.address || dispositivo.lastDeviceGps?.address;
   const enderecoMsg = dispositivo.lastMessage?.location?.fullAddress;
@@ -54,29 +115,50 @@ const extrairLocal = (dispositivo: Dispositivo3Sat) => {
     dispositivo.lastMessage?.location?.city;
 
   return (
+    enderecoPosicao ||
     enderecoGps ||
     enderecoMsg ||
     [rua, numero].filter(Boolean).join(' ') ||
+    cidadePosicao ||
     cidade ||
     '-'
   );
 };
 
-const extrairVelocidade = (dispositivo: Dispositivo3Sat) =>
-  dispositivo.deviceGpsDataSingle?.speed ?? dispositivo.lastDeviceGps?.speed ?? null;
+const extrairVelocidade = (dispositivo: Dispositivo3SatComPosicao) => {
+  const velocidadePosicao = toNumber(dispositivo.ultimaPosicao?.speed);
+  if (velocidadePosicao !== null) return velocidadePosicao;
+  return (
+    toNumber(
+      dispositivo.deviceGpsDataSingle?.speed ?? dispositivo.lastDeviceGps?.speed
+    ) ?? null
+  );
+};
 
 type Coordenadas = {
   latitude: number;
   longitude: number;
 };
 
-const extrairCoordenadas = (dispositivo: Dispositivo3Sat): Coordenadas | null => {
-  const latitude =
-    dispositivo.deviceGpsDataSingle?.latitude ?? dispositivo.lastDeviceGps?.latitude;
-  const longitude =
-    dispositivo.deviceGpsDataSingle?.longitude ?? dispositivo.lastDeviceGps?.longitude;
+const extrairCoordenadas = (
+  dispositivo: Dispositivo3SatComPosicao
+): Coordenadas | null => {
+  const latitude = toNumber(
+    dispositivo.ultimaPosicao?.latitude ??
+      dispositivo.deviceGpsDataSingle?.latitude ??
+      dispositivo.lastDeviceGps?.latitude
+  );
+  const longitude = toNumber(
+    dispositivo.ultimaPosicao?.longitude ??
+      dispositivo.deviceGpsDataSingle?.longitude ??
+      dispositivo.lastDeviceGps?.longitude
+  );
 
-  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+  if (latitude === null || longitude === null) {
+    return null;
+  }
+
+  if (latitude === 0 && longitude === 0) {
     return null;
   }
 
@@ -86,14 +168,16 @@ const extrairCoordenadas = (dispositivo: Dispositivo3Sat): Coordenadas | null =>
 const montarUrlMapa = ({ latitude, longitude }: Coordenadas) =>
   `https://www.google.com/maps?q=${latitude},${longitude}`;
 
-const extrairAtualizacao = (dispositivo: Dispositivo3Sat) =>
+const extrairAtualizacao = (dispositivo: Dispositivo3SatComPosicao) =>
+  dispositivo.ultimaPosicao?.localDateTime ||
+  dispositivo.ultimaPosicao?.dateTime ||
   dispositivo.deviceGpsDataSingle?.localCreationTime ||
   dispositivo.deviceGpsDataSingle?.dateTime ||
   dispositivo.lastDeviceGps?.localCreationTime ||
   dispositivo.lastMessage?.localPositionDateTime ||
   undefined;
 
-const extrairOnline = (dispositivo: Dispositivo3Sat) => {
+const extrairOnline = (dispositivo: Dispositivo3SatComPosicao) => {
   const onlineGps = dispositivo.deviceGpsDataSingle?.isOnline;
   const onlineUltimo = dispositivo.lastDeviceGps?.isOnline;
   const onlineMensagem = dispositivo.lastMessage?.network?.online;
@@ -103,8 +187,44 @@ const extrairOnline = (dispositivo: Dispositivo3Sat) => {
   return false;
 };
 
+const obterChavesPosicao = (posicao: Posicao3Sat) =>
+  [posicao.deviceId, posicao.id, posicao.plate].filter(Boolean) as string[];
+
+const obterChavesDispositivo = (dispositivo: Dispositivo3Sat) =>
+  [
+    dispositivo.deviceId,
+    dispositivo.id,
+    dispositivo.plate,
+    dispositivo.deviceGpsDataSingle?.plate,
+    dispositivo.lastDeviceGps?.plate,
+  ].filter(Boolean) as string[];
+
+const anexarPosicoes = (
+  dispositivos: Dispositivo3Sat[],
+  posicoes: Posicao3Sat[]
+): Dispositivo3SatComPosicao[] => {
+  const indice = new Map<string, Posicao3Sat>();
+  posicoes.forEach((posicao) => {
+    obterChavesPosicao(posicao).forEach((chave) => {
+      if (!indice.has(chave)) {
+        indice.set(chave, posicao);
+      }
+    });
+  });
+
+  return dispositivos.map((dispositivo) => {
+    const chaves = obterChavesDispositivo(dispositivo);
+    const ultimaPosicao = chaves
+      .map((chave) => indice.get(chave))
+      .find((posicao) => Boolean(posicao));
+    return { ...dispositivo, ultimaPosicao };
+  });
+};
+
 export default function Rastreamento3SatPage() {
-  const [dispositivos, setDispositivos] = useState<Dispositivo3Sat[]>([]);
+  const [dispositivos, setDispositivos] = useState<Dispositivo3SatComPosicao[]>(
+    []
+  );
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [filtros, setFiltros] = useState<Filtros>({
@@ -118,8 +238,34 @@ export default function Rastreamento3SatPage() {
     setErro('');
     setCarregando(true);
     try {
-      const dados = await listarDispositivos();
-      setDispositivos(Array.isArray(dados) ? dados : []);
+      const [dispositivosResult, posicoesResult] = await Promise.allSettled([
+        listarDispositivos(),
+        consultarUltimaPosicao(),
+      ]);
+
+      if (dispositivosResult.status === 'rejected') {
+        throw dispositivosResult.reason;
+      }
+
+      const listaDispositivos = normalizarDispositivos(dispositivosResult.value);
+      const listaPosicoes =
+        posicoesResult.status === 'fulfilled'
+          ? normalizarPosicoes(posicoesResult.value)
+          : [];
+
+      if (posicoesResult.status === 'rejected') {
+        setErro(
+          posicoesResult.reason instanceof Error
+            ? posicoesResult.reason.message
+            : 'Erro ao carregar localizacoes da 3SAT.'
+        );
+      }
+
+      const dispositivosComPosicao = anexarPosicoes(
+        listaDispositivos,
+        listaPosicoes
+      );
+      setDispositivos(dispositivosComPosicao);
     } catch (error) {
       setErro(
         error instanceof Error

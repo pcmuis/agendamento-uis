@@ -5,14 +5,15 @@ export type Posicao3Sat = {
   driverName?: string;
   driverCode?: string;
   fleetName?: string;
-  latitude?: number;
-  longitude?: number;
-  speed?: number;
+  latitude?: number | string;
+  longitude?: number | string;
+  speed?: number | string;
   dateTime?: string;
   localDateTime?: string;
   address?: string;
   addressString?: string;
   plate?: string;
+  city?: string;
 };
 
 export type Dispositivo3Sat = {
