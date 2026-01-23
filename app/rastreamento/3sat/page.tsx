@@ -65,6 +65,27 @@ const extrairLocal = (dispositivo: Dispositivo3Sat) => {
 const extrairVelocidade = (dispositivo: Dispositivo3Sat) =>
   dispositivo.deviceGpsDataSingle?.speed ?? dispositivo.lastDeviceGps?.speed ?? null;
 
+type Coordenadas = {
+  latitude: number;
+  longitude: number;
+};
+
+const extrairCoordenadas = (dispositivo: Dispositivo3Sat): Coordenadas | null => {
+  const latitude =
+    dispositivo.deviceGpsDataSingle?.latitude ?? dispositivo.lastDeviceGps?.latitude;
+  const longitude =
+    dispositivo.deviceGpsDataSingle?.longitude ?? dispositivo.lastDeviceGps?.longitude;
+
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    return null;
+  }
+
+  return { latitude, longitude };
+};
+
+const montarUrlMapa = ({ latitude, longitude }: Coordenadas) =>
+  `https://www.google.com/maps?q=${latitude},${longitude}`;
+
 const extrairAtualizacao = (dispositivo: Dispositivo3Sat) =>
   dispositivo.deviceGpsDataSingle?.localCreationTime ||
   dispositivo.deviceGpsDataSingle?.dateTime ||
@@ -295,11 +316,35 @@ export default function Rastreamento3SatPage() {
                   const velocidade = extrairVelocidade(dispositivo);
                   const online = extrairOnline(dispositivo);
                   const atualizadoEm = formatarDataHora(extrairAtualizacao(dispositivo));
+                  const coordenadas = extrairCoordenadas(dispositivo);
+                  const urlMapa = coordenadas ? montarUrlMapa(coordenadas) : '';
 
                   return (
                     <tr key={dispositivo.id || `${placa}-${index}`} className="border-t">
                       <td className="p-3 text-gray-900 font-medium">{placa}</td>
-                      <td className="p-3 text-gray-900">{nome}</td>
+                      <td className="p-3 text-gray-900">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{nome}</span>
+                          {coordenadas ? (
+                            <a
+                              href={urlMapa}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center rounded-md border border-green-600 px-2 py-1 text-[11px] font-semibold text-green-700 hover:bg-green-50"
+                            >
+                              Ver no mapa
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              className="inline-flex items-center rounded-md border border-gray-200 px-2 py-1 text-[11px] font-semibold text-gray-400 cursor-not-allowed"
+                              disabled
+                            >
+                              Sem local
+                            </button>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-3 text-gray-900">{grupo}</td>
                       <td className="p-3 text-gray-900">{motorista}</td>
                       <td className="p-3 text-gray-900">{local}</td>
