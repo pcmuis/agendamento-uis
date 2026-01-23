@@ -44,21 +44,28 @@ export async function POST(request: Request) {
       method === 'GET'
         ? await fetch(`${API_BASE_URL}${endpoint}?token=${encodeURIComponent(token)}`, {
             method: 'GET',
+            headers: {
+              Accept: 'application/json, text/plain;q=0.9, */*;q=0.8',
+            },
+            cache: 'no-store',
           })
         : await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              Accept: 'application/json, text/plain;q=0.9, */*;q=0.8',
             },
-            body: JSON.stringify({ ...payload, Token: token }),
+            body: JSON.stringify({ ...payload, token }),
+            cache: 'no-store',
           });
 
     const rawText = await response.text();
     let data: unknown = rawText;
 
     if (rawText) {
+      const cleaned = rawText.replace(/^\uFEFF/, '').trim();
       try {
-        data = JSON.parse(rawText);
+        data = JSON.parse(cleaned);
       } catch (error) {
         console.warn('Resposta da 3SAT nao era JSON valido.', error);
       }
