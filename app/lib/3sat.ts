@@ -8,6 +8,7 @@ export type Posicao3Sat = {
   latitude?: number | string;
   longitude?: number | string;
   speed?: number | string;
+  altitude?: number | string;
   dateTime?: string;
   localDateTime?: string;
   address?: string;
