@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback, useRef } from 'react';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SidebarMenu from '../components/SidebarMenu';
 import { listarVeiculosComStatus } from '@/app/lib/veiculos';
@@ -50,6 +50,8 @@ export default function GerenciarAgendamentosPage() {
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'ativos' | 'concluidos'>('ativos');
   const [codigoFiltro, setCodigoFiltro] = useState<string>('');
   const [linhasExpandidas, setLinhasExpandidas] = useState<Set<string>>(() => new Set());
+  const [selecionados, setSelecionados] = useState<Set<string>>(() => new Set());
+  const checkboxTodosRef = useRef<HTMLInputElement | null>(null);
 
   const carregarDados = useCallback(async () => {
     try {
@@ -71,6 +73,14 @@ export default function GerenciarAgendamentosPage() {
   useEffect(() => {
     carregarDados();
   }, [carregarDados]);
+
+  useEffect(() => {
+    setSelecionados((prev) => {
+      const idsDisponiveis = new Set(agendamentos.map((ag) => ag.id));
+      const novo = new Set([...prev].filter((id) => idsDisponiveis.has(id)));
+      return novo;
+    });
+  }, [agendamentos]);
 
   const validarAgendamento = async (dados: typeof dadosForm, isEdicao: boolean = false) => {
     // Validação de campos obrigatórios
@@ -383,6 +393,112 @@ export default function GerenciarAgendamentosPage() {
     });
   }, []);
 
+  const alternarSelecionado = useCallback((id: string) => {
+    setSelecionados((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(id)) {
+        novo.delete(id);
+      } else {
+        novo.add(id);
+      }
+      return novo;
+    });
+  }, []);
+
+  const selecionarTodosFiltrados = useCallback((selecionar: boolean, ids: string[]) => {
+    setSelecionados((prev) => {
+      const novo = new Set(prev);
+      if (selecionar) {
+        ids.forEach((id) => novo.add(id));
+      } else {
+        ids.forEach((id) => novo.delete(id));
+      }
+      return novo;
+    });
+  }, []);
+
+  const copiarTexto = useCallback(async (texto: string) => {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(texto);
+      return true;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = texto;
+    textarea.setAttribute('readonly', 'true');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const sucesso = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return sucesso;
+  }, []);
+
+  const montarTextoAgendamento = useCallback((agendamento: Agendamento) => {
+    const observacoes = agendamento.observacoes?.trim() ? agendamento.observacoes : 'Sem observações';
+    const comprovante = agendamento.codigo || '-';
+    const agendador = agendamento.nomeAgendador || agendamento.motorista;
+    const telefoneFormatado = formatarTelefone(agendamento.telefone) || agendamento.telefone || '-';
+    const matricula = agendamento.matricula || '-';
+    const veiculoNome = getVeiculoNome(agendamento.veiculoId);
+    const placa = getVeiculoPlaca(agendamento.veiculoId);
+    const status = getStatusAgendamento(agendamento);
+
+    return [
+      '🚗 Agendamento de Veículo',
+      `📌 Status: ${status}`,
+      `🧾 Comprovante: ${comprovante}`,
+      `👤 Motorista: ${agendamento.motorista}`,
+      `🆔 Matrícula: ${matricula}`,
+      `📞 Telefone: ${telefoneFormatado}`,
+      `🚘 Veículo: ${veiculoNome}`,
+      `🔢 Placa: ${placa}`,
+      `📍 Destino: ${agendamento.destino}`,
+      `🕒 Saída: ${formatarDataHora(agendamento.saida)}`,
+      `🕘 Retorno: ${formatarDataHora(agendamento.chegada)}`,
+      `🗂️ Agendador: ${agendador}`,
+      `📝 Observações: ${observacoes}`,
+    ].join('\n');
+  }, [formatarDataHora, formatarTelefone, getStatusAgendamento, getVeiculoNome, getVeiculoPlaca]);
+
+  const handleCopiarAgendamentos = useCallback(async () => {
+    const agendamentosSelecionados = agendamentos.filter((ag) => selecionados.has(ag.id));
+
+    if (agendamentosSelecionados.length === 0) {
+      toast.info('Selecione ao menos um agendamento para copiar.');
+      return;
+    }
+
+    const textoFinal = agendamentosSelecionados
+      .map(montarTextoAgendamento)
+      .join('\n\n------------------------------\n\n');
+
+    try {
+      const sucesso = await copiarTexto(textoFinal);
+      if (!sucesso) {
+        throw new Error('Falha ao copiar');
+      }
+      toast.success(`Agendamento${agendamentosSelecionados.length > 1 ? 's' : ''} copiado(s)!`);
+    } catch (error) {
+      console.error('Erro ao copiar agendamentos:', error);
+      toast.error('Não foi possível copiar os agendamentos. Tente novamente.');
+    }
+  }, [agendamentos, copiarTexto, montarTextoAgendamento, selecionados]);
+
+  const idsFiltrados = agendamentosFiltrados.map((ag) => ag.id);
+  const totalSelecionados = selecionados.size;
+  const todosFiltradosSelecionados =
+    idsFiltrados.length > 0 && idsFiltrados.every((id) => selecionados.has(id));
+  const algunsFiltradosSelecionados =
+    idsFiltrados.some((id) => selecionados.has(id)) && !todosFiltradosSelecionados;
+
+  useEffect(() => {
+    if (checkboxTodosRef.current) {
+      checkboxTodosRef.current.indeterminate = algunsFiltradosSelecionados;
+    }
+  }, [algunsFiltradosSelecionados]);
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
@@ -402,6 +518,29 @@ export default function GerenciarAgendamentosPage() {
               </div>
 
               <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>Selecionados: {totalSelecionados}</span>
+                </div>
+                <button
+                  onClick={handleCopiarAgendamentos}
+                  disabled={totalSelecionados === 0}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    totalSelecionados === 0
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-purple-600 hover:bg-purple-700 text-white'
+                  }`}
+                  title="Copiar agendamentos selecionados"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V6a2 2 0 012-2h7a2 2 0 012 2v7a2 2 0 01-2 2h-1M8 7H6a2 2 0 00-2 2v7a2 2 0 002 2h7a2 2 0 002-2v-1"
+                    />
+                  </svg>
+                  Copiar
+                </button>
                 <button
                   onClick={() => router.push('/historico')}
                   className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -505,6 +644,20 @@ export default function GerenciarAgendamentosPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <label className="flex items-center gap-2">
+                            <input
+                              ref={checkboxTodosRef}
+                              type="checkbox"
+                              checked={todosFiltradosSelecionados}
+                              onChange={(event) => selecionarTodosFiltrados(event.target.checked, idsFiltrados)}
+                              onClick={(event) => event.stopPropagation()}
+                              className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              aria-label="Selecionar todos os agendamentos filtrados"
+                            />
+                            <span>Sel.</span>
+                          </label>
+                        </th>
                         <th
                           onClick={() => handleOrdenar('veiculoId')}
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -556,6 +709,7 @@ export default function GerenciarAgendamentosPage() {
                       {agendamentosFiltrados.map((ag) => {
                         const status = getStatusAgendamento(ag);
                         const expandido = ag.id ? linhasExpandidas.has(ag.id) : false;
+                        const selecionado = ag.id ? selecionados.has(ag.id) : false;
                         return (
                           <Fragment key={ag.id}>
                             <tr
@@ -572,8 +726,23 @@ export default function GerenciarAgendamentosPage() {
                                 }
                               }}
                               aria-expanded={expandido}
-                              className={`hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer ${expandido ? 'bg-gray-50' : ''}`}
+                              className={`hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer ${
+                                expandido || selecionado ? 'bg-gray-50' : ''
+                              }`}
                             >
+                              <td
+                                className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                onClick={(event) => event.stopPropagation()}
+                                onKeyDown={(event) => event.stopPropagation()}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selecionado}
+                                  onChange={() => alternarSelecionado(ag.id)}
+                                  className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                  aria-label={`Selecionar agendamento de ${ag.motorista}`}
+                                />
+                              </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 <div className="flex items-center gap-3">
                                   <span
@@ -643,7 +812,7 @@ export default function GerenciarAgendamentosPage() {
                               </td>
                             </tr>
                             <tr className={expandido ? 'bg-gray-50' : 'hidden'}>
-                              <td colSpan={5} className="px-6 pb-4">
+                              <td colSpan={6} className="px-6 pb-4">
                                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700 space-y-4">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
