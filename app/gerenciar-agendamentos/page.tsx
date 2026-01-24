@@ -446,18 +446,12 @@ export default function GerenciarAgendamentosPage() {
     const status = getStatusAgendamento(agendamento);
 
     return [
-      '🚗 Agendamento de Veículo',
-      `📌 Status: ${status}`,
+      `🚘 Placa: ${placa} | Veículo: ${veiculoNome}`,
       `🧾 Comprovante: ${comprovante}`,
       `👤 Motorista: ${agendamento.motorista}`,
-      `🆔 Matrícula: ${matricula}`,
-      `📞 Telefone: ${telefoneFormatado}`,
-      `🚘 Veículo: ${veiculoNome}`,
-      `🔢 Placa: ${placa}`,
+      `🗂️ Resp. Agendamento: ${agendador}`,
+      `🕒 Saída: ${formatarDataHora(agendamento.saida)} | Retorno: ${formatarDataHora(agendamento.chegada)} `,
       `📍 Destino: ${agendamento.destino}`,
-      `🕒 Saída: ${formatarDataHora(agendamento.saida)}`,
-      `🕘 Retorno: ${formatarDataHora(agendamento.chegada)}`,
-      `🗂️ Agendador: ${agendador}`,
       `📝 Observações: ${observacoes}`,
     ].join('\n');
   }, [formatarDataHora, formatarTelefone, getStatusAgendamento, getVeiculoNome, getVeiculoPlaca]);
