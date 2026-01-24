@@ -458,13 +458,25 @@ export default function GerenciarAgendamentosPage() {
 
   const handleCopiarAgendamentos = useCallback(async () => {
     const agendamentosSelecionados = agendamentos.filter((ag) => selecionados.has(ag.id));
+    const agendamentosOrdenados = [...agendamentosSelecionados].sort((a, b) => {
+      const dataA = new Date(a.saida);
+      const dataB = new Date(b.saida);
+      const tempoA = isValid(dataA) ? dataA.getTime() : Number.POSITIVE_INFINITY;
+      const tempoB = isValid(dataB) ? dataB.getTime() : Number.POSITIVE_INFINITY;
+
+      if (tempoA !== tempoB) {
+        return tempoA - tempoB;
+      }
+
+      return String(a.motorista || '').localeCompare(String(b.motorista || ''));
+    });
 
     if (agendamentosSelecionados.length === 0) {
       toast.info('Selecione ao menos um agendamento para copiar.');
       return;
     }
 
-    const textoFinal = agendamentosSelecionados
+    const textoFinal = agendamentosOrdenados
       .map(montarTextoAgendamento)
       .join('\n\n------------------------------\n\n');
 
