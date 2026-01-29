@@ -14,7 +14,8 @@ type Filtros = {
   termo: string;
   grupo: string;
   local: string;
-  somenteOnline: boolean;
+  status: 'todos' | 'online' | 'offline' | 'sem_sinal';
+  somenteComLocalizacao: boolean;
 };
 
 type Dispositivo3SatComPosicao = Dispositivo3Sat & {
@@ -286,7 +287,8 @@ export default function Rastreamento3SatPage() {
     termo: '',
     grupo: '',
     local: '',
-    somenteOnline: false,
+    status: 'todos',
+    somenteComLocalizacao: false,
   });
   const [focoId, setFocoId] = useState<string | null>(null);
   const mapaRef = useRef<HTMLDivElement | null>(null);
@@ -356,14 +358,26 @@ export default function Rastreamento3SatPage() {
       const motorista = normalizarTexto(extrairMotorista(dispositivo));
       const grupo = extrairGrupo(dispositivo);
       const endereco = normalizarTexto(extrairLocal(dispositivo));
+      const online = extrairOnline(dispositivo);
+      const semSinal = extrairSemSinal(dispositivo);
+      const statusAtual = semSinal ? 'sem_sinal' : online ? 'online' : 'offline';
+      const temLocalizacao = Boolean(extrairCoordenadas(dispositivo));
 
       const combinaTermo =
         !termo || placa.includes(termo) || nome.includes(termo) || motorista.includes(termo);
       const combinaGrupo = !filtros.grupo || grupo === filtros.grupo;
       const combinaLocal = !local || endereco.includes(local);
-      const combinaOnline = !filtros.somenteOnline || extrairOnline(dispositivo);
+      const combinaStatus = filtros.status === 'todos' || statusAtual === filtros.status;
+      const combinaLocalizacao =
+        !filtros.somenteComLocalizacao || temLocalizacao;
 
-      return combinaTermo && combinaGrupo && combinaLocal && combinaOnline;
+      return (
+        combinaTermo &&
+        combinaGrupo &&
+        combinaLocal &&
+        combinaStatus &&
+        combinaLocalizacao
+      );
     });
   }, [dispositivos, filtros]);
 
@@ -460,7 +474,13 @@ export default function Rastreamento3SatPage() {
   }, []);
 
   const limparFiltros = () => {
-    setFiltros({ termo: '', grupo: '', local: '', somenteOnline: false });
+    setFiltros({
+      termo: '',
+      grupo: '',
+      local: '',
+      status: 'todos',
+      somenteComLocalizacao: false,
+    });
   };
 
   return (
@@ -493,7 +513,7 @@ export default function Rastreamento3SatPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
           <div className="lg:col-span-2">
             <label className="block text-sm font-medium text-green-700 mb-1">
               Placa ou dispositivo
@@ -541,22 +561,42 @@ export default function Rastreamento3SatPage() {
               placeholder="Cidade, endereco, area"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-green-700 mb-1">
+              Status
+            </label>
+            <select
+              value={filtros.status}
+              onChange={(event) =>
+                setFiltros((prev) => ({
+                  ...prev,
+                  status: event.target.value as Filtros['status'],
+                }))
+              }
+              className="w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900"
+            >
+              <option value="todos">Todos os status</option>
+              <option value="online">Online</option>
+              <option value="offline">Offline</option>
+              <option value="sem_sinal">Sem sinal</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-gray-500">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={filtros.somenteOnline}
+              checked={filtros.somenteComLocalizacao}
               onChange={(event) =>
                 setFiltros((prev) => ({
                   ...prev,
-                  somenteOnline: event.target.checked,
+                  somenteComLocalizacao: event.target.checked,
                 }))
               }
               className="h-4 w-4 text-green-600 focus:ring-green-500 border-green-300 rounded"
             />
-            Mostrar somente online
+            Mostrar somente com localizacao
           </label>
           <div className="flex items-center gap-3">
             <span>
@@ -611,7 +651,7 @@ export default function Rastreamento3SatPage() {
               Offline
             </span>
             <span className="inline-flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-gray-400"></span>
+              <span className="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
               Sem sinal
             </span>
             {carregando && (

@@ -35,24 +35,39 @@ body {
   border: 0;
 }
 
-.tracking-marker-dot {
-  width: 16px;
-  height: 16px;
+.tracking-marker-pin {
+  width: 22px;
+  height: 22px;
+  background: #22c55e;
+  border-radius: 50% 50% 50% 0;
+  position: relative;
+  transform: rotate(-45deg);
+  border: 2px solid #ffffff;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+}
+
+.tracking-marker-pin::after {
+  content: "";
+  width: 8px;
+  height: 8px;
   border-radius: 9999px;
-  border: 3px solid #ffffff;
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: #16a34a;
   box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.15);
 }
 
-.tracking-marker-dot-online {
-  background: #22c55e;
+.tracking-marker-pin-online::after {
+  background: #16a34a;
 }
 
-.tracking-marker-dot-offline {
+.tracking-marker-pin-offline::after {
   background: #ef4444;
 }
 
-.tracking-marker-dot-unknown {
-  background: #9ca3af;
+.tracking-marker-pin-unknown::after {
+  background: #f59e0b;
 }
 
 .tracking-tooltip {

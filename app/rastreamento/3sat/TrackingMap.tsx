@@ -38,10 +38,10 @@ export type TrackingMapProps = {
 const criarIcone = (status: TrackingMarker['status']) =>
   L.divIcon({
     className: 'tracking-marker',
-    html: `<span class="tracking-marker-dot tracking-marker-dot-${status}"></span>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-    popupAnchor: [0, -8],
+    html: `<span class="tracking-marker-pin tracking-marker-pin-${status}"></span>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 24],
+    popupAnchor: [0, -18],
   });
 
 type AtualizadorProps = {
