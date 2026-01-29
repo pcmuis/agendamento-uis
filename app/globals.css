@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 :root {
   --background: #ffffff;
@@ -23,4 +24,55 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.leaflet-container {
+  font-family: inherit;
+}
+
+.tracking-marker {
+  background: transparent;
+  border: 0;
+}
+
+.tracking-marker-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.15);
+}
+
+.tracking-marker-dot-online {
+  background: #22c55e;
+}
+
+.tracking-marker-dot-offline {
+  background: #ef4444;
+}
+
+.tracking-marker-dot-unknown {
+  background: #9ca3af;
+}
+
+.tracking-tooltip {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #111827;
+  padding: 4px 6px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+.tracking-popup .leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  padding: 0;
+}
+
+.tracking-popup .leaflet-popup-content {
+  margin: 12px 14px;
+}
+
+.tracking-popup .leaflet-popup-tip {
+  background: #ffffff;
 }
