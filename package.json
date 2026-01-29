@@ -25,6 +25,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/date-fns": "^2.5.3",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-big-calendar": "^1.16.1",
