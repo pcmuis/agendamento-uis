@@ -4,9 +4,8 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import { doc, getDoc, runTransaction } from 'firebase/firestore';
 import { getDb } from '../lib/firebase';
 
-const DEFAULT_USERNAME = 'admin';
-const DEFAULT_PASSWORD = 'admin123';
 const SESSION_KEY = 'uis-auth-user';
+const CREDENTIALS_PATH = ['configuracoes', 'autenticacao'] as const;
 
 type Credentials = {
   username: string;
@@ -14,33 +13,19 @@ type Credentials = {
   passwordHash: string;
 };
 
+type CredentialStatus = 'checking' | 'unconfigured' | 'configured' | 'error';
+
 const hashPassword = async (password: string, salt: string) => {
   const data = new TextEncoder().encode(`${salt}:${password}`);
   const digest = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 };
 
-const ensureDefaultCredentials = async () => {
-  const db = getDb();
-  const credentialsRef = doc(db, 'configuracoes', 'autenticacao');
-
-  await runTransaction(db, async (transaction) => {
-    const snapshot = await transaction.get(credentialsRef);
-    if (!snapshot.exists()) {
-      const salt = crypto.randomUUID();
-      const passwordHash = await hashPassword(DEFAULT_PASSWORD, salt);
-      transaction.set(credentialsRef, {
-        username: DEFAULT_USERNAME,
-        salt,
-        passwordHash,
-      } satisfies Credentials);
-    }
-  });
-};
-
 type AuthContextType = {
   user: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  credentialStatus: CredentialStatus;
+  login: (username: string, password: string) => Promise<void>;
+  setupCredentials: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 };
@@ -50,14 +35,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [credentialStatus, setCredentialStatus] = useState<CredentialStatus>('checking');
 
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        await ensureDefaultCredentials();
-        setUser(sessionStorage.getItem(SESSION_KEY));
+        const credentialsSnapshot = await getDoc(doc(getDb(), ...CREDENTIALS_PATH));
+        if (credentialsSnapshot.exists()) {
+          setCredentialStatus('configured');
+          setUser(sessionStorage.getItem(SESSION_KEY));
+        } else {
+          sessionStorage.removeItem(SESSION_KEY);
+          setCredentialStatus('unconfigured');
+        }
       } catch (error) {
-        console.error('Não foi possível inicializar as credenciais no Firestore.', error);
+        console.error('Não foi possível consultar as credenciais no Firestore.', error);
+        setCredentialStatus('error');
       } finally {
         setLoading(false);
       }
@@ -67,8 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string) => {
-    await ensureDefaultCredentials();
-    const credentialsSnapshot = await getDoc(doc(getDb(), 'configuracoes', 'autenticacao'));
+    const credentialsSnapshot = await getDoc(doc(getDb(), ...CREDENTIALS_PATH));
     const credentials = credentialsSnapshot.data() as Credentials | undefined;
 
     if (!credentials || credentials.username !== username) {
@@ -84,13 +76,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(credentials.username);
   };
 
+  const setupCredentials = async (username: string, password: string) => {
+    const db = getDb();
+    const credentialsRef = doc(db, ...CREDENTIALS_PATH);
+    const salt = crypto.randomUUID();
+    const passwordHash = await hashPassword(password, salt);
+
+    await runTransaction(db, async (transaction) => {
+      const snapshot = await transaction.get(credentialsRef);
+      if (snapshot.exists()) {
+        throw new Error('As credenciais já foram cadastradas.');
+      }
+
+      transaction.set(credentialsRef, { username, salt, passwordHash } satisfies Credentials);
+    });
+
+    setCredentialStatus('configured');
+    sessionStorage.setItem(SESSION_KEY, username);
+    setUser(username);
+  };
+
   const logout = async () => {
     sessionStorage.removeItem(SESSION_KEY);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, credentialStatus, login, setupCredentials, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
