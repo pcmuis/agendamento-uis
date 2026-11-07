@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login } = useAuth();
@@ -16,7 +16,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await login(email, password);
+      await login(username, password);
       router.push('/administracao');
     } catch (err) {
       setError('Erro ao fazer login. Verifique suas credenciais.');
@@ -38,14 +38,14 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-green-700 mb-1">
-              Email
+            <label htmlFor="username" className="block text-sm font-medium text-green-700 mb-1">
+              Usuário
             </label>
             <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
               required
             />
