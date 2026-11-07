@@ -5,7 +5,7 @@ import { doc, getDoc, runTransaction } from 'firebase/firestore';
 import { getDb } from '../lib/firebase';
 
 const SESSION_KEY = 'uis-auth-user';
-const CREDENTIALS_PATH = ['configuracoes', 'autenticacao'] as const;
+const CREDENTIALS_PATH = ['configuracoes1', 'autenticacao1'] as const;
 
 type Credentials = {
   username: string;
