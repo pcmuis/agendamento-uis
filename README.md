@@ -68,7 +68,6 @@ As seguintes variáveis precisam ser configuradas no arquivo `.env.local` (e na 
 | Variável | Valor de referência (projeto atual) |
 | --- | --- |
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | `AIzaSyAKcPt2kRxwuNaWBnMg-l6VOrZsOIg_MBE` |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `uis-agendamento.firebaseapp.com` |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `uis-agendamento` |
 | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `uis-agendamento.firebasestorage.app` |
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `823959630726` |
@@ -124,10 +123,12 @@ As seguintes variáveis precisam ser configuradas no arquivo `.env.local` (e na 
 
 ## Autenticação
 
-- O sistema utiliza autenticação básica para proteger rotas administrativas.
+- Para testes, o primeiro acesso cria o documento `configuracoes/autenticacao` no Firestore.
 - Credenciais padrão:
   - Usuário: `admin`
   - Senha: `admin123`
+- A senha é armazenada como hash com salt. A sessão fica no armazenamento da aba do navegador.
+- Este mecanismo no cliente não oferece segurança para produção; não use para proteger dados reais.
 
 ## Licença
 
